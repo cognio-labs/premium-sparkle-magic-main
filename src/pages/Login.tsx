@@ -31,11 +31,38 @@ const LoginInner = () => {
       return;
     }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
     if (error) {
+      if (error.message.toLowerCase().includes("invalid login credentials")) {
+        const name = email.split("@")[0] || "StockPro User";
+        const { data: signupData, error: signupError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { name } },
+        });
+        if (!signupError && signupData.user) {
+          await supabase.from("profiles").upsert({ id: signupData.user.id, name });
+        }
+        setLoading(false);
+        if (signupError) {
+          toast({ title: "Login failed", description: signupError.message, variant: "destructive" });
+          return;
+        }
+        if (!signupData.session) {
+          toast({
+            title: "Account created",
+            description: "Supabase email confirmation is enabled. Check your email, then login again.",
+          });
+          return;
+        }
+        toast({ title: "Account created", description: "Login successful" });
+        navigate("/");
+        return;
+      }
+      setLoading(false);
       toast({ title: "Login failed", description: error.message, variant: "destructive" });
       return;
     }
+    setLoading(false);
     toast({ title: "Login successful" });
     navigate("/");
   };
