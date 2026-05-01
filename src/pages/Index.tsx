@@ -21,7 +21,7 @@ import {
   addClient, addStock, addWebsite, clearLocalUser, dashboardStats, deleteClient,
   fetchClients, fetchStocks, fetchWebsites, generatedWebsiteHtml, publishWebsite, setLocalUser
 } from "@/lib/stockpro";
-import { consumeToken, createAppFromPrompt, getTokenState, upsertApp } from "@/lib/store";
+import { createAppFromPrompt, upsertApp } from "@/lib/store";
 import { generateWebsiteWithGemini } from "@/lib/gemini";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -83,10 +83,6 @@ const Dashboard = () => {
   };
 
   const createAiProject = async (prompt: string) => {
-    if (!consumeToken()) {
-      toast({ title: "Daily tokens finished", description: "Aaj ke 20 free tokens khatam ho gaye. Pro plan lo ya kal fir 20 tokens milenge.", variant: "destructive" });
-      return;
-    }
     const app = createAppFromPrompt(prompt);
     try {
       const generated = await generateWebsiteWithGemini({
@@ -105,9 +101,9 @@ const Dashboard = () => {
       ];
       app.updatedAt = Date.now();
       upsertApp(app);
-      toast({ title: generated.usedFallback ? "Project created locally" : "Gemini project created", description: `${getTokenState().remaining} tokens remaining today.` });
+      toast({ title: generated.usedFallback ? "Project created locally" : "Gemini project created", description: "Project saved in All apps." });
     } catch (error: any) {
-      toast({ title: "Project created locally", description: error?.message || `${getTokenState().remaining} tokens remaining today.` });
+      toast({ title: "Project created locally", description: error?.message || "Project saved in All apps." });
     }
     navigate(`/app/${app.id}`);
   };
@@ -169,7 +165,6 @@ const Dashboard = () => {
 
 const DashboardTab = ({ loading, stats, onCreate }: { loading: boolean; stats: Awaited<ReturnType<typeof dashboardStats>>; onCreate: (prompt: string) => void }) => {
   const [prompt, setPrompt] = useState("");
-  const tokens = getTokenState();
   const submit = () => {
     const value = prompt.trim();
     if (!value) return;
@@ -197,7 +192,6 @@ const DashboardTab = ({ loading, stats, onCreate }: { loading: boolean; stats: A
               <Button size="icon" variant="outline" className="h-7 w-7 rounded-md"><Settings2 className="h-3.5 w-3.5" /></Button>
             </div>
             <div className="flex items-center gap-3 text-xs">
-              <span>{tokens.remaining}/20 tokens</span>
               <span className="h-5 w-9 rounded-full bg-muted p-0.5"><span className="block h-4 w-4 rounded-full bg-white shadow-soft" /></span>
               <Mic className="h-3.5 w-3.5" />
               <Button size="icon" onClick={submit} className="h-8 w-8 rounded-lg bg-black text-white hover:bg-black/90"><ChevronRight className="h-4 w-4" /></Button>

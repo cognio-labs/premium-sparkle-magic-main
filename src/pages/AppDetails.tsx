@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
-  consumeToken, getApp, getApps, getTokenState,
+  getApp, getApps,
   saveApps, toggleFavorite, upsertApp, useFavorites, type App
 } from "@/lib/store";
 import { GEMINI_MODEL_OPTIONS, generateWebsiteWithGemini } from "@/lib/gemini";
@@ -27,7 +27,6 @@ const AppDetailsInner = () => {
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState("gemini-flash-latest");
   const [generating, setGenerating] = useState(false);
-  const tokens = getTokenState();
 
   useEffect(() => {
     setApp(getApp(id));
@@ -56,10 +55,6 @@ const AppDetailsInner = () => {
   const generate = async () => {
     const value = prompt.trim();
     if (!value) return;
-    if (!consumeToken()) {
-      toast({ title: "Tokens finished", description: "Aaj ke 20 free tokens khatam ho gaye. Pro plan lo ya kal fir 20 tokens milenge.", variant: "destructive" });
-      return;
-    }
     setGenerating(true);
     try {
       const mergedPrompt = `${app.prompt ?? app.name}\n\nUpdate request: ${value}`;
@@ -86,7 +81,7 @@ const AppDetailsInner = () => {
       setPrompt("");
       toast({
         title: generated.usedFallback ? "Updated locally" : "Gemini updated website",
-        description: `${getTokenState().remaining} tokens remaining today.`,
+        description: "Project files and preview updated.",
       });
     } catch (error: any) {
       toast({ title: "Gemini failed", description: error?.message || "Could not generate website.", variant: "destructive" });
@@ -176,7 +171,6 @@ const AppDetailsInner = () => {
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <Bot className="h-4 w-4" /> AI Agent
               </div>
-              <span className="rounded-full bg-card px-2 py-1 text-[11px] font-medium">{tokens.remaining}/20 tokens</span>
             </div>
             <select
               value={model}
