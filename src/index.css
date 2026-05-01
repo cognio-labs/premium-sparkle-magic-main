@@ -6,59 +6,56 @@
 
 @layer base {
   :root {
-    /* Warm cream / peach palette */
-    --background: 35 60% 97%;
-    --foreground: 24 20% 12%;
+    /* Elegant blue palette */
+    --background: 210 40% 98%;
+    --foreground: 215 25% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 24 20% 12%;
+    --card-foreground: 215 25% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 24 20% 12%;
+    --popover-foreground: 215 25% 15%;
 
-    --primary: 22 95% 55%;
+    --primary: 210 60% 45%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 30 100% 70%;
+    --primary-glow: 210 100% 80%;
 
-    --secondary: 30 40% 95%;
-    --secondary-foreground: 24 20% 18%;
+    --secondary: 210 30% 95%;
+    --secondary-foreground: 215 25% 20%;
 
-    --muted: 30 30% 94%;
-    --muted-foreground: 25 10% 45%;
+    --muted: 210 20% 94%;
+    --muted-foreground: 215 15% 45%;
 
-    --accent: 25 90% 92%;
-    --accent-foreground: 22 80% 30%;
+    --accent: 210 50% 92%;
+    --accent-foreground: 210 60% 30%;
 
-    --destructive: 0 75% 55%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 28 30% 89%;
-    --input: 28 30% 89%;
-    --ring: 22 95% 55%;
+    --border: 210 20% 88%;
+    --input: 210 20% 88%;
+    --ring: 210 60% 45%;
 
     --radius: 0.875rem;
 
     /* Sidebar */
-    --sidebar-background: 35 50% 98%;
-    --sidebar-foreground: 24 15% 25%;
-    --sidebar-primary: 22 95% 55%;
+    --sidebar-background: 210 30% 98%;
+    --sidebar-foreground: 215 20% 30%;
+    --sidebar-primary: 210 60% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 30 50% 94%;
-    --sidebar-accent-foreground: 24 25% 15%;
-    --sidebar-border: 28 30% 88%;
-    --sidebar-ring: 22 95% 55%;
+    --sidebar-accent: 210 40% 94%;
+    --sidebar-accent-foreground: 215 30% 15%;
+    --sidebar-border: 210 20% 88%;
+    --sidebar-ring: 210 60% 45%;
 
-    /* Premium gradients */
-    --gradient-warm: linear-gradient(180deg, hsl(35 65% 97%) 0%, hsl(28 90% 88%) 60%, hsl(22 95% 75%) 100%);
-    --gradient-aurora: radial-gradient(ellipse at top, hsl(30 100% 92%) 0%, transparent 60%),
-                       radial-gradient(ellipse at bottom, hsl(22 95% 78%) 0%, transparent 70%);
-    --gradient-primary: linear-gradient(135deg, hsl(22 95% 55%), hsl(15 90% 60%));
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100% / 0.9), hsl(0 0% 100% / 0.6));
+    /* Premium gradients - New Blue Theme */
+    --gradient-warm: linear-gradient(180deg, #8FB3D1 0%, #AFC8DE 40%, #E6EEF5 70%, #F8FBFF 100%);
+    --gradient-aurora: radial-gradient(ellipse at 70% 20%, hsl(210 100% 95%) 0%, transparent 60%),
+                       radial-gradient(ellipse at 30% 80%, hsl(200 100% 90%) 0%, transparent 70%);
+    --gradient-primary: linear-gradient(135deg, hsl(210 60% 50%), hsl(200 70% 40%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100% / 0.95), hsl(0 0% 100% / 0.85));
 
     /* Shadows */
-    --shadow-elegant: 0 20px 60px -20px hsl(22 60% 40% / 0.18);
-    --shadow-soft: 0 2px 12px -2px hsl(24 30% 30% / 0.08);
-    --shadow-glow: 0 0 80px hsl(30 100% 70% / 0.35);
+    --shadow-elegant: 0 20px 60px -20px hsl(210 40% 30% / 0.15);
+    --shadow-soft: 0 2px 12px -2px hsl(215 20% 30% / 0.06);
+    --shadow-glow: 0 0 80px hsl(210 100% 80% / 0.25);
   }
 
   .dark {
