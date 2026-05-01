@@ -7,11 +7,13 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useApps, useFavorites } from "@/lib/store";
 
+type SidebarTab = "dashboard" | "clients" | "stocks" | "websites" | "profile";
+
 const navMain = [
-  { icon: Home, label: "Home", active: true },
-  { icon: AppWindow, label: "All apps" },
-  { icon: FileText, label: "Templates" },
-  { icon: Plug, label: "Integrations" },
+  { icon: Home, label: "Home", tab: "dashboard" as const },
+  { icon: AppWindow, label: "All apps", tab: "clients" as const },
+  { icon: FileText, label: "Templates", tab: "stocks" as const },
+  { icon: Plug, label: "Integrations", tab: "websites" as const },
 ];
 
 const community = [
@@ -20,7 +22,17 @@ const community = [
   { icon: Gift, label: "Affiliate Program" },
 ];
 
-export const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) => {
+export const Sidebar = ({
+  activeTab,
+  collapsed,
+  onSelectTab,
+  onToggle,
+}: {
+  activeTab: SidebarTab;
+  collapsed: boolean;
+  onSelectTab: (tab: SidebarTab) => void;
+  onToggle: () => void;
+}) => {
   const [openCommunity, setOpenCommunity] = useState(true);
   const [openFavs, setOpenFavs] = useState(true);
   const [openRecents, setOpenRecents] = useState(true);
@@ -40,7 +52,7 @@ export const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle:
   }
 
   return (
-    <aside className="w-64 shrink-0 border-r border-sidebar-border bg-sidebar/80 backdrop-blur-xl flex flex-col h-full">
+    <aside className="w-[188px] shrink-0 border-r border-sidebar-border bg-sidebar/95 backdrop-blur-xl flex flex-col h-full">
       <div className="px-3 py-3 flex items-center gap-1">
         <div className="flex items-center gap-1 p-1 rounded-xl bg-sidebar-accent/60 flex-1">
           <button className="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-card shadow-soft text-xs font-medium">
@@ -54,11 +66,18 @@ export const Sidebar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle:
 
       <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 pb-4 space-y-5">
         <div className="space-y-0.5">
-          {navMain.map((it) => (<NavItem key={it.label} {...it} />))}
+          {navMain.map((it) => (
+            <NavItem
+              key={it.label}
+              {...it}
+              active={activeTab === it.tab}
+              onClick={() => onSelectTab(it.tab)}
+            />
+          ))}
         </div>
 
         <Section title="Community" open={openCommunity} onToggle={() => setOpenCommunity(o => !o)}>
-          {community.map((it) => <NavItem key={it.label} {...it} sub />)}
+          {community.map((it) => <NavItem key={it.label} {...it} sub onClick={() => onSelectTab("profile")} />)}
         </Section>
 
         <Section title="Favorites" open={openFavs} onToggle={() => setOpenFavs(o => !o)}>
@@ -102,8 +121,9 @@ const AppLink = ({ id, name }: { id: string; name: string }) => (
   </Link>
 );
 
-const NavItem = ({ icon: Icon, label, active, sub }: any) => (
+const NavItem = ({ icon: Icon, label, active, sub, onClick }: any) => (
   <button
+    onClick={onClick}
     className={cn(
       "w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm font-medium transition-all",
       active ? "bg-card text-foreground shadow-soft" : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
