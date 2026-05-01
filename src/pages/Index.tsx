@@ -70,8 +70,8 @@ const Dashboard = () => {
   }, [clients, clientSearch]);
 
   const logout = async () => {
+    clearLocalUser();
     if (isSupabaseConfigured) await supabase.auth.signOut();
-    else clearLocalUser();
     toast({ title: "Logged out" });
   };
 
@@ -261,7 +261,7 @@ const ProfileTab = ({ userEmail, displayName, clients, stocks, websites, refresh
   const saveName = async () => {
     if (!user) return;
     setLoading(true);
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseConfigured || user.id === "local-user") {
       setLocalUser(userEmail, name);
       await refreshProfile();
       setLoading(false);

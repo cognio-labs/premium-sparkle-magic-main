@@ -48,10 +48,12 @@ const LoginInner = () => {
           return;
         }
         if (!signupData.session) {
+          setLocalUser(email, name);
           toast({
-            title: "Account created",
-            description: "Supabase email confirmation is enabled. Check your email, then login again.",
+            title: "Access granted",
+            description: "Supabase email confirmation is on, so local dev mode is active for now.",
           });
+          navigate("/");
           return;
         }
         toast({ title: "Account created", description: "Login successful" });

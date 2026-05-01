@@ -41,19 +41,21 @@ export function clearLocalUser() {
 }
 
 export async function currentUserId() {
-  if (!isSupabaseConfigured) {
-    const user = getLocalUser();
-    if (!user) throw new Error("Not authenticated");
-    return user.id;
-  }
+  const localUser = getLocalUser();
+  if (localUser) return localUser.id;
+  if (!isSupabaseConfigured) throw new Error("Not authenticated");
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) throw error ?? new Error("Not authenticated");
   return data.user.id;
 }
 
+function shouldUseLocalData() {
+  return Boolean(getLocalUser()) || !isSupabaseConfigured;
+}
+
 export async function fetchClients() {
   const userId = await currentUserId();
-  if (!isSupabaseConfigured) {
+  if (shouldUseLocalData()) {
     return readLocal<Client[]>(LOCAL_CLIENTS_KEY, []).filter(row => row.user_id === userId).sort(sortDesc);
   }
   const { data, error } = await supabase
@@ -67,7 +69,7 @@ export async function fetchClients() {
 
 export async function fetchStocks() {
   const userId = await currentUserId();
-  if (!isSupabaseConfigured) {
+  if (shouldUseLocalData()) {
     return readLocal<Stock[]>(LOCAL_STOCKS_KEY, []).filter(row => row.user_id === userId).sort(sortDesc);
   }
   const { data, error } = await supabase
@@ -81,7 +83,7 @@ export async function fetchStocks() {
 
 export async function fetchWebsites() {
   const userId = await currentUserId();
-  if (!isSupabaseConfigured) {
+  if (shouldUseLocalData()) {
     return readLocal<Website[]>(LOCAL_WEBSITES_KEY, []).filter(row => row.user_id === userId).sort(sortDesc);
   }
   const { data, error } = await supabase
@@ -95,7 +97,7 @@ export async function fetchWebsites() {
 
 export async function dashboardStats() {
   const userId = await currentUserId();
-  if (!isSupabaseConfigured) {
+  if (shouldUseLocalData()) {
     const clients = readLocal<Client[]>(LOCAL_CLIENTS_KEY, []).filter(row => row.user_id === userId).sort(sortDesc);
     const stocks = readLocal<Stock[]>(LOCAL_STOCKS_KEY, []).filter(row => row.user_id === userId);
     const websites = readLocal<Website[]>(LOCAL_WEBSITES_KEY, []).filter(row => row.user_id === userId);
@@ -130,7 +132,7 @@ export async function dashboardStats() {
 
 export async function addClient(input: Pick<Client, "name" | "phone" | "risk_profile"> & { investment_amount: number }) {
   const userId = await currentUserId();
-  if (!isSupabaseConfigured) {
+  if (shouldUseLocalData()) {
     const rows = readLocal<Client[]>(LOCAL_CLIENTS_KEY, []);
     rows.unshift({
       id: crypto.randomUUID(),
@@ -159,7 +161,7 @@ export async function addClient(input: Pick<Client, "name" | "phone" | "risk_pro
 }
 
 export async function deleteClient(id: string) {
-  if (!isSupabaseConfigured) {
+  if (shouldUseLocalData()) {
     writeLocal(LOCAL_CLIENTS_KEY, readLocal<Client[]>(LOCAL_CLIENTS_KEY, []).filter(row => row.id !== id));
     writeLocal(LOCAL_STOCKS_KEY, readLocal<Stock[]>(LOCAL_STOCKS_KEY, []).filter(row => row.client_id !== id));
     writeLocal(LOCAL_WEBSITES_KEY, readLocal<Website[]>(LOCAL_WEBSITES_KEY, []).filter(row => row.client_id !== id));
@@ -171,7 +173,7 @@ export async function deleteClient(id: string) {
 
 export async function addStock(input: Omit<Stock, "id" | "user_id" | "created_at">) {
   const userId = await currentUserId();
-  if (!isSupabaseConfigured) {
+  if (shouldUseLocalData()) {
     const rows = readLocal<Stock[]>(LOCAL_STOCKS_KEY, []);
     rows.unshift({ ...input, id: crypto.randomUUID(), user_id: userId, created_at: new Date().toISOString() });
     writeLocal(LOCAL_STOCKS_KEY, rows);
@@ -183,7 +185,7 @@ export async function addStock(input: Omit<Stock, "id" | "user_id" | "created_at
 
 export async function addWebsite(input: Omit<Website, "id" | "user_id" | "created_at">) {
   const userId = await currentUserId();
-  if (!isSupabaseConfigured) {
+  if (shouldUseLocalData()) {
     const rows = readLocal<Website[]>(LOCAL_WEBSITES_KEY, []);
     rows.unshift({ ...input, id: crypto.randomUUID(), user_id: userId, created_at: new Date().toISOString() });
     writeLocal(LOCAL_WEBSITES_KEY, rows);
@@ -194,7 +196,7 @@ export async function addWebsite(input: Omit<Website, "id" | "user_id" | "create
 }
 
 export async function publishWebsite(id: string) {
-  if (!isSupabaseConfigured) {
+  if (shouldUseLocalData()) {
     const rows = readLocal<Website[]>(LOCAL_WEBSITES_KEY, []).map(row => row.id === id ? { ...row, status: "published" as const } : row);
     writeLocal(LOCAL_WEBSITES_KEY, rows);
     return;

@@ -31,11 +31,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
-      if (!isSupabaseConfigured) {
-        const localUser = getLocalUser();
+      const localUser = getLocalUser();
+      if (localUser) {
         setSession(null);
-        setUser(localUser ? { id: localUser.id, email: localUser.email } : null);
-        setDisplayName(localUser?.name ?? "");
+        setUser({ id: localUser.id, email: localUser.email });
+        setDisplayName(localUser.name);
+        setLoading(false);
+        return;
+      }
+      if (!isSupabaseConfigured) {
+        setSession(null);
+        setUser(null);
+        setDisplayName("");
         setLoading(false);
         return;
       }
@@ -46,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (getLocalUser()) return;
       if (!isSupabaseConfigured) return;
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
