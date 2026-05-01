@@ -1,9 +1,20 @@
-const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+export const GEMINI_MODELS = [
+  "gemini-flash-latest",
+  "gemini-flash-lite-latest",
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
+  "gemini-pro-latest",
+  "gemini-3.1-flash-lite-preview",
+  "gemini-3-pro-preview",
+];
 
 type GeminiPayload = {
   appName?: string;
   prompt?: string;
   files?: Record<string, string>;
+  model?: string;
 };
 
 export default async function handler(req: any, res: any) {
@@ -29,9 +40,10 @@ export default async function handler(req: any, res: any) {
 
 export async function callGemini(apiKey: string, payload: GeminiPayload) {
   const prompt = buildPrompt(payload);
+  const models = preferredModels(payload.model);
   let lastError = "";
 
-  for (const model of GEMINI_MODELS) {
+  for (const model of models) {
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: "POST",
       headers: {
@@ -78,6 +90,11 @@ export async function callGemini(apiKey: string, payload: GeminiPayload) {
   }
 
   throw new Error(lastError || "Gemini generation failed");
+}
+
+function preferredModels(model?: string) {
+  if (!model || !GEMINI_MODELS.includes(model)) return GEMINI_MODELS;
+  return [model, ...GEMINI_MODELS.filter(item => item !== model)];
 }
 
 function buildPrompt(payload: GeminiPayload) {

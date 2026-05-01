@@ -4,7 +4,20 @@ type GenerateInput = {
   appName: string;
   prompt: string;
   files?: Record<string, string>;
+  model?: string;
 };
+
+export const GEMINI_MODEL_OPTIONS = [
+  "gemini-flash-latest",
+  "gemini-flash-lite-latest",
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
+  "gemini-pro-latest",
+  "gemini-3.1-flash-lite-preview",
+  "gemini-3-pro-preview",
+];
 
 export async function generateWebsiteWithGemini(input: GenerateInput) {
   const response = await fetch("/api/gemini", {
