@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft, Bot, Code2, Download, Eye, FileCode2, Loader2, MessageSquare,
+  ArrowLeft, Bot, Code2, Download, ExternalLink, Eye, FileCode2, Loader2, MessageSquare,
   MoreHorizontal, RefreshCw, Save, Send, Star, Trash2
 } from "lucide-react";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
@@ -121,6 +121,17 @@ const AppDetailsInner = () => {
     downloadFile(`${app.name.replace(/\s+/g, "-").toLowerCase()}-code.txt`, bundle);
   };
 
+  const openPreview = () => {
+    const nextWindow = window.open("", "_blank");
+    if (!nextWindow) {
+      toast({ title: "Popup blocked", description: "Browser ne preview tab block kar diya." });
+      return;
+    }
+    nextWindow.document.open();
+    nextWindow.document.write(preview);
+    nextWindow.document.close();
+  };
+
   return (
     <div className="h-screen overflow-hidden bg-[#f7f5f0] text-foreground">
       <header className="flex h-12 items-center justify-between border-b border-border bg-card px-3">
@@ -140,6 +151,9 @@ const AppDetailsInner = () => {
           <Button variant={mode === "code" ? "default" : "outline"} size="sm" className="h-8" onClick={() => setMode("code")}>
             <Code2 className="mr-1.5 h-4 w-4" /> Code
           </Button>
+          <Button variant="outline" size="sm" className="h-8" onClick={openPreview}>
+            <ExternalLink className="mr-1.5 h-4 w-4" /> Full preview
+          </Button>
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => toggleFavorite(id)}>
             <Star className={cn("h-4 w-4", isFav && "fill-current text-amber-500")} />
           </Button>
@@ -155,7 +169,7 @@ const AppDetailsInner = () => {
         </div>
       </header>
 
-      <main className="grid h-[calc(100vh-48px)] grid-cols-[320px_1fr_340px]">
+      <main className={cn("grid h-[calc(100vh-48px)]", mode === "preview" ? "grid-cols-[320px_minmax(0,1fr)]" : "grid-cols-[320px_minmax(0,1fr)_340px]")}>
         <aside className="flex min-h-0 flex-col border-r border-border bg-[#f4f0e9]">
           <div className="border-b border-border p-4">
             <div className="mb-3 flex items-center justify-between">
@@ -203,14 +217,14 @@ const AppDetailsInner = () => {
           </div>
         </aside>
 
-        <section className="min-w-0 overflow-auto bg-card p-5">
+        <section className={cn("min-w-0 overflow-auto bg-card", mode === "preview" ? "p-3" : "p-5")}>
           <div className="mb-3 flex items-center justify-center">
             <div className="flex items-center gap-2 rounded-full bg-[#f4f0e9] px-4 py-2 text-sm font-medium shadow-soft">
               <RefreshCw className="h-4 w-4" /> {generating ? "Getting ready..." : "Preview ready"}
             </div>
           </div>
           {mode === "preview" ? (
-            <div className="mx-auto h-[calc(100vh-125px)] max-w-5xl overflow-hidden rounded-2xl border border-border bg-white shadow-elegant">
+            <div className="mx-auto h-[calc(100vh-112px)] w-full max-w-[1440px] overflow-hidden rounded-2xl border border-border bg-white shadow-elegant">
               <iframe title="Website preview" srcDoc={preview} sandbox="allow-scripts" className="h-full w-full bg-white" />
             </div>
           ) : (
@@ -220,7 +234,7 @@ const AppDetailsInner = () => {
           )}
         </section>
 
-        <aside className="min-h-0 border-l border-border bg-card">
+        {mode === "code" && <aside className="min-h-0 border-l border-border bg-card">
           <div className="flex h-12 items-center justify-between border-b border-border px-4">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <FileCode2 className="h-4 w-4" /> Files
@@ -262,7 +276,7 @@ const AppDetailsInner = () => {
               </pre>
             </div>
           </div>
-        </aside>
+        </aside>}
       </main>
     </div>
   );
