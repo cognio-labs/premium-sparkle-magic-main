@@ -1,9 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { getLocalUser } from "@/lib/stockpro";
 
 type AuthContextValue = {
-  user: User | null;
+  user: User | { id: string; email: string } | null;
   session: Session | null;
   loading: boolean;
   displayName: string;
@@ -30,6 +31,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
+      if (!isSupabaseConfigured) {
+        const localUser = getLocalUser();
+        setSession(null);
+        setUser(localUser ? { id: localUser.id, email: localUser.email } : null);
+        setDisplayName(localUser?.name ?? "");
+        setLoading(false);
+        return;
+      }
       setSession(data.session);
       setUser(data.session?.user ?? null);
       await loadProfile(data.session?.user ?? null);
@@ -37,12 +46,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!isSupabaseConfigured) return;
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       loadProfile(nextSession?.user ?? null);
     });
 
-    return () => listener.subscription.unsubscribe();
+    const onLocalAuth = () => {
+      const localUser = getLocalUser();
+      setUser(localUser ? { id: localUser.id, email: localUser.email } : null);
+      setDisplayName(localUser?.name ?? "");
+      setLoading(false);
+    };
+    window.addEventListener("stockpro-local-auth", onLocalAuth);
+
+    return () => {
+      listener.subscription.unsubscribe();
+      window.removeEventListener("stockpro-local-auth", onLocalAuth);
+    };
   }, []);
 
   const value = useMemo<AuthContextValue>(() => ({

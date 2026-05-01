@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { setLocalUser } from "@/lib/stockpro";
 
 const SignupInner = () => {
   const { user, loading: authLoading } = useAuth();
@@ -23,6 +24,13 @@ const SignupInner = () => {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
+    if (!isSupabaseConfigured) {
+      setLocalUser(email, name);
+      setLoading(false);
+      toast({ title: "Account created", description: "Local dev mode active. Add Supabase keys for production auth." });
+      navigate("/");
+      return;
+    }
     const { data, error } = await supabase.auth.signUp({
       email,
       password,

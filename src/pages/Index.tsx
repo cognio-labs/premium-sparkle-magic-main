@@ -13,8 +13,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { supabase, type Client, type Stock, type Website } from "@/lib/supabase";
-import { dashboardStats, fetchClients, fetchStocks, fetchWebsites, generatedWebsiteHtml } from "@/lib/stockpro";
+import { isSupabaseConfigured, supabase, type Client, type Stock, type Website } from "@/lib/supabase";
+import {
+  addClient, addStock, addWebsite, clearLocalUser, dashboardStats, deleteClient,
+  fetchClients, fetchStocks, fetchWebsites, generatedWebsiteHtml, publishWebsite, setLocalUser
+} from "@/lib/stockpro";
 import { useAuth } from "@/contexts/AuthContext";
 
 type Tab = "dashboard" | "clients" | "stocks" | "websites" | "profile";
@@ -67,7 +70,8 @@ const Dashboard = () => {
   }, [clients, clientSearch]);
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    if (isSupabaseConfigured) await supabase.auth.signOut();
+    else clearLocalUser();
     toast({ title: "Logged out" });
   };
 
@@ -211,11 +215,15 @@ const WebsitesTab = ({ websites, clients, loading, onRefresh }: { websites: Webs
   const [publishing, setPublishing] = useState("");
   const publish = async (id: string) => {
     setPublishing(id);
-    const { error } = await supabase.from("websites").update({ status: "published" }).eq("id", id);
-    setPublishing("");
-    if (error) return toast({ title: "Publish failed", description: error.message, variant: "destructive" });
-    toast({ title: "Website live ho gayi!" });
-    onRefresh();
+    try {
+      await publishWebsite(id);
+      toast({ title: "Website live ho gayi!" });
+      onRefresh();
+    } catch (e: any) {
+      toast({ title: "Publish failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setPublishing("");
+    }
   };
   return (
     <Panel title="AI Websites" action={<GenerateWebsiteButton clients={clients} onRefresh={onRefresh} />}>
@@ -253,6 +261,13 @@ const ProfileTab = ({ userEmail, displayName, clients, stocks, websites, refresh
   const saveName = async () => {
     if (!user) return;
     setLoading(true);
+    if (!isSupabaseConfigured) {
+      setLocalUser(userEmail, name);
+      await refreshProfile();
+      setLoading(false);
+      toast({ title: "Profile saved" });
+      return;
+    }
     const { error: metaError } = await supabase.auth.updateUser({ data: { name } });
     const { error: profileError } = await supabase.from("profiles").upsert({ id: user.id, name });
     setLoading(false);
@@ -262,6 +277,10 @@ const ProfileTab = ({ userEmail, displayName, clients, stocks, websites, refresh
   };
 
   const changePassword = async () => {
+    if (!isSupabaseConfigured) {
+      toast({ title: "Local dev mode", description: "Password reset needs a configured Supabase project." });
+      return;
+    }
     setPasswordLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(userEmail, { redirectTo: window.location.origin });
     setPasswordLoading(false);
@@ -298,22 +317,22 @@ const AddClientButton = ({ onRefresh }: { onRefresh: () => void }) => {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
-    const { data: userData } = await supabase.auth.getUser();
-    const { error } = await supabase.from("clients").insert({
-      user_id: userData.user?.id,
+    try {
+      await addClient({
       name: form.name,
       phone: form.phone,
       investment_amount: Number(form.investment_amount || 0),
       risk_profile: form.risk_profile,
-      returns_percent: 0,
-      website_status: "none",
-    });
-    setLoading(false);
-    if (error) return toast({ title: "Client add failed", description: error.message, variant: "destructive" });
-    toast({ title: "Client add ho gaya!" });
-    setOpen(false);
-    setForm({ name: "", phone: "", investment_amount: "", risk_profile: "moderate" });
-    onRefresh();
+    } as any);
+      toast({ title: "Client add ho gaya!" });
+      setOpen(false);
+      setForm({ name: "", phone: "", investment_amount: "", risk_profile: "moderate" });
+      onRefresh();
+    } catch (e: any) {
+      toast({ title: "Client add failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -339,9 +358,8 @@ const AddStockButton = ({ clients, onRefresh }: { clients: Client[]; onRefresh: 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
-    const { data: userData } = await supabase.auth.getUser();
-    const { error } = await supabase.from("stocks").insert({
-      user_id: userData.user?.id,
+    try {
+      await addStock({
       client_id: form.client_id || null,
       symbol: form.symbol.toUpperCase(),
       company_name: form.company_name,
@@ -349,12 +367,15 @@ const AddStockButton = ({ clients, onRefresh }: { clients: Client[]; onRefresh: 
       current_price: Number(form.current_price),
       quantity: Number(form.quantity),
     });
-    setLoading(false);
-    if (error) return toast({ title: "Stock add failed", description: error.message, variant: "destructive" });
-    toast({ title: "Stock saved" });
-    setOpen(false);
-    setForm({ symbol: "", company_name: "", buy_price: "", current_price: "", quantity: "", client_id: "" });
-    onRefresh();
+      toast({ title: "Stock saved" });
+      setOpen(false);
+      setForm({ symbol: "", company_name: "", buy_price: "", current_price: "", quantity: "", client_id: "" });
+      onRefresh();
+    } catch (e: any) {
+      toast({ title: "Stock add failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -384,22 +405,24 @@ const GenerateWebsiteButton = ({ clients, onRefresh }: { clients: Client[]; onRe
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
-    const { data: userData } = await supabase.auth.getUser();
-    const { error } = await supabase.from("websites").insert({
-      user_id: userData.user?.id,
+    try {
+      await addWebsite({
       client_id: form.client_id || null,
-      template_type: form.template_type,
+      template_type: form.template_type as Website["template_type"],
       prompt_used: form.prompt_used,
       generated_html: generatedWebsiteHtml(form.prompt_used),
       status: "draft",
       url_slug: `site-${Date.now()}`,
     });
-    setLoading(false);
-    if (error) return toast({ title: "Website generation failed", description: error.message, variant: "destructive" });
-    toast({ title: "Website draft saved" });
-    setOpen(false);
-    setForm({ client_id: "", template_type: "portfolio", prompt_used: "" });
-    onRefresh();
+      toast({ title: "Website draft saved" });
+      setOpen(false);
+      setForm({ client_id: "", template_type: "portfolio", prompt_used: "" });
+      onRefresh();
+    } catch (e: any) {
+      toast({ title: "Website generation failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -422,11 +445,15 @@ const ClientRow = ({ client, onRefresh }: { client: Client; onRefresh: () => voi
   const remove = async () => {
     if (!window.confirm(`Delete ${client.name}?`)) return;
     setLoading(true);
-    const { error } = await supabase.from("clients").delete().eq("id", client.id);
-    setLoading(false);
-    if (error) return toast({ title: "Delete failed", description: error.message, variant: "destructive" });
-    toast({ title: "Client deleted" });
-    onRefresh();
+    try {
+      await deleteClient(client.id);
+      toast({ title: "Client deleted" });
+      onRefresh();
+    } catch (e: any) {
+      toast({ title: "Delete failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
   return (
     <div className="rounded-xl bg-secondary/50 p-3 grid grid-cols-2 md:grid-cols-[1.3fr_1fr_1fr_1fr_1fr_auto] gap-3 items-center">
