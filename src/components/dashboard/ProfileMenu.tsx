@@ -2,10 +2,11 @@ import { useState, useRef, useEffect } from "react";
 import { User, Settings, Languages, HelpCircle, Heart, UserPlus, Gift, LogOut, ChevronRight, Moon, Sun } from "lucide-react";
 import { useTheme } from "@/components/theme/ThemeProvider";
 
-export const ProfileMenu = () => {
+export const ProfileMenu = ({ name, email, onLogout }: { name: string; email: string; onLogout: () => void }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { theme, toggle } = useTheme();
+  const initial = (name || email || "A").slice(0, 1).toUpperCase();
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -22,16 +23,16 @@ export const ProfileMenu = () => {
         className="h-9 w-9 rounded-full bg-gradient-primary text-primary-foreground font-semibold text-sm flex items-center justify-center shadow-soft hover:shadow-elegant transition-shadow"
         aria-label="Profile menu"
       >
-        A
+        {initial}
       </button>
 
       {open && (
         <div className="absolute right-0 mt-2 w-72 rounded-2xl bg-popover/95 backdrop-blur-xl border border-border shadow-elegant overflow-hidden animate-fade-in z-50">
           <div className="p-4 flex items-center gap-3 border-b border-border">
-            <div className="h-10 w-10 rounded-full bg-gradient-primary text-primary-foreground font-semibold flex items-center justify-center">A</div>
+            <div className="h-10 w-10 rounded-full bg-gradient-primary text-primary-foreground font-semibold flex items-center justify-center">{initial}</div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold truncate">Aariyan Malik</p>
-              <p className="text-xs text-muted-foreground truncate">aariyanmalik61@gmail.com</p>
+              <p className="text-sm font-semibold truncate">{name || "Aariyan Malik"}</p>
+              <p className="text-xs text-muted-foreground truncate">{email || "aariyanmalik61@gmail.com"}</p>
             </div>
           </div>
 
@@ -56,7 +57,7 @@ export const ProfileMenu = () => {
           </div>
 
           <div className="p-1.5 border-t border-border">
-            <Item icon={LogOut} label="Log out" />
+            <Item icon={LogOut} label="Log out" onClick={onLogout} />
           </div>
         </div>
       )}
@@ -64,8 +65,8 @@ export const ProfileMenu = () => {
   );
 };
 
-const Item = ({ icon: Icon, label, arrow }: any) => (
-  <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-accent/60 text-popover-foreground transition-colors">
+const Item = ({ icon: Icon, label, arrow, onClick }: any) => (
+  <button onClick={onClick} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-accent/60 text-popover-foreground transition-colors">
     <Icon className="h-4 w-4 text-muted-foreground" />
     <span className="flex-1 text-left">{label}</span>
     {arrow && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}

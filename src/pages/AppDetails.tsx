@@ -1,9 +1,17 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft, Star, Trash2, ExternalLink, Save, X, Plus, Eye, Code } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  ArrowLeft, Bot, Code2, Download, Eye, FileCode2, Loader2, MessageSquare,
+  MoreHorizontal, RefreshCw, Save, Send, Star, Trash2
+} from "lucide-react";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
-import { getApp, upsertApp, useFavorites, toggleFavorite, getApps, saveApps, type App } from "@/lib/store";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import {
+  consumeToken, generateProjectFiles, getApp, getApps, getTokenState,
+  saveApps, toggleFavorite, upsertApp, useFavorites, type App
+} from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const AppDetailsInner = () => {
@@ -12,177 +20,230 @@ const AppDetailsInner = () => {
   const { toast } = useToast();
   const favs = useFavorites();
   const isFav = favs.includes(id);
-
   const [app, setApp] = useState<App | undefined>(() => getApp(id));
-  const [name, setName] = useState(app?.name ?? "");
-  const [tags, setTags] = useState<string[]>(app?.tags ?? []);
-  const [tagInput, setTagInput] = useState("");
-  const [view, setView] = useState<"preview" | "code">("preview");
-  const [dirty, setDirty] = useState(false);
+  const [mode, setMode] = useState<"preview" | "code">("preview");
+  const [activeFile, setActiveFile] = useState("index.html");
+  const [prompt, setPrompt] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const tokens = getTokenState();
 
   useEffect(() => {
-    const fresh = getApp(id);
-    setApp(fresh);
-    setName(fresh?.name ?? "");
-    setTags(fresh?.tags ?? []);
+    setApp(getApp(id));
   }, [id]);
+
+  const files = useMemo(() => app?.files ?? { "index.html": app?.preview ?? "" }, [app]);
+  const fileNames = Object.keys(files);
+  const preview = app?.preview || files["index.html"] || "";
+  const messages = app?.messages ?? [];
 
   if (!app) {
     return (
-      <div className="min-h-screen bg-gradient-warm flex flex-col items-center justify-center p-6 text-center">
-        <h1 className="font-display text-4xl mb-2">App not found</h1>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+        <h1 className="text-3xl font-semibold mb-2">App not found</h1>
         <p className="text-muted-foreground mb-6">This project doesn't exist or was deleted.</p>
-        <Link to="/" className="px-4 py-2 rounded-xl bg-gradient-primary text-primary-foreground font-medium shadow-soft">Back to dashboard</Link>
+        <Link to="/" className="px-4 py-2 rounded-xl bg-gradient-primary text-primary-foreground font-medium shadow-soft">Back home</Link>
       </div>
     );
   }
 
+  const updateApp = (next: App) => {
+    upsertApp(next);
+    setApp(next);
+  };
+
+  const generate = () => {
+    const value = prompt.trim();
+    if (!value) return;
+    if (!consumeToken()) {
+      toast({ title: "Tokens finished", description: "Aaj ke 20 free tokens khatam ho gaye. Pro plan lo ya kal fir 20 tokens milenge.", variant: "destructive" });
+      return;
+    }
+    setGenerating(true);
+    window.setTimeout(() => {
+      const mergedPrompt = `${app.prompt ?? app.name}\n\nUpdate request: ${value}`;
+      const generated = generateProjectFiles(mergedPrompt, app.name);
+      updateApp({
+        ...app,
+        ...generated,
+        prompt: mergedPrompt,
+        messages: [
+          ...messages,
+          { role: "user", content: value, createdAt: Date.now() },
+          { role: "assistant", content: "Updated the website files and refreshed the preview.", createdAt: Date.now() + 1 },
+        ],
+        updatedAt: Date.now(),
+      });
+      setPrompt("");
+      setGenerating(false);
+      toast({ title: "Updated", description: `${getTokenState().remaining} tokens remaining today.` });
+    }, 600);
+  };
+
   const save = () => {
-    upsertApp({ ...app, name: name.trim() || "Untitled", tags, updatedAt: Date.now() });
-    setDirty(false);
-    toast({ title: "Saved", description: "Your changes have been saved." });
+    updateApp({ ...app, updatedAt: Date.now() });
+    toast({ title: "Saved", description: "Project saved in All apps and Recents." });
   };
 
   const remove = () => {
-    saveApps(getApps().filter(a => a.id !== id));
+    saveApps(getApps().filter(item => item.id !== id));
     toast({ title: "Deleted", description: `"${app.name}" was removed.` });
     navigate("/");
   };
 
-  const addTag = () => {
-    const t = tagInput.trim().toLowerCase();
-    if (!t || tags.includes(t)) { setTagInput(""); return; }
-    setTags([...tags, t]); setTagInput(""); setDirty(true);
+  const downloadFile = (fileName: string, content: string) => {
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName.replaceAll("/", "-");
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
-  const previewSrc = app.preview || `<!doctype html><html><body style="font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;color:#666;background:#fafafa">No preview available</body></html>`;
+  const downloadProject = () => {
+    const bundle = Object.entries(files).map(([name, content]) => `// FILE: ${name}\n${content}`).join("\n\n");
+    downloadFile(`${app.name.replace(/\s+/g, "-").toLowerCase()}-code.txt`, bundle);
+  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground relative">
-      <div className="absolute inset-0 bg-gradient-warm pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-aurora opacity-50 pointer-events-none" />
-
-      <div className="relative z-10 max-w-6xl mx-auto px-6 py-6">
-        {/* Top row */}
-        <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
-          <button onClick={() => navigate("/")} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="h-4 w-4" /> Back
-          </button>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => toggleFavorite(id)}
-              className={cn(
-                "h-9 w-9 rounded-xl flex items-center justify-center transition-all border border-border",
-                isFav ? "bg-accent text-primary" : "bg-card hover:bg-accent text-muted-foreground"
-              )}
-              aria-label={isFav ? "Unfavorite" : "Favorite"}
-            >
-              <Star className={cn("h-4 w-4", isFav && "fill-current")} />
-            </button>
-            <button onClick={remove} className="h-9 w-9 rounded-xl bg-card hover:bg-destructive hover:text-destructive-foreground border border-border text-muted-foreground flex items-center justify-center transition-colors" aria-label="Delete">
-              <Trash2 className="h-4 w-4" />
-            </button>
-            <button
-              onClick={save}
-              disabled={!dirty}
-              className="flex items-center gap-2 px-4 h-9 rounded-xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-soft hover:shadow-elegant transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Save className="h-4 w-4" /> Save
-            </button>
+    <div className="h-screen overflow-hidden bg-[#f7f5f0] text-foreground">
+      <header className="flex h-12 items-center justify-between border-b border-border bg-card px-3">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <p className="text-sm font-semibold leading-tight">{app.name}</p>
+            <p className="text-[11px] text-muted-foreground">Saved at {new Date(app.updatedAt).toLocaleTimeString()}</p>
           </div>
         </div>
-
-        {/* Editable name */}
-        <div className="mb-2">
-          <input
-            value={name}
-            onChange={e => { setName(e.target.value); setDirty(true); }}
-            className="font-display text-5xl sm:text-6xl bg-transparent w-full focus:outline-none focus:ring-0 placeholder:text-muted-foreground/40"
-            placeholder="Untitled project"
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            Updated {new Date(app.updatedAt).toLocaleString()}
-          </p>
+        <div className="flex items-center gap-2">
+          <Button variant={mode === "preview" ? "default" : "outline"} size="sm" className="h-8" onClick={() => setMode("preview")}>
+            <Eye className="mr-1.5 h-4 w-4" /> Preview
+          </Button>
+          <Button variant={mode === "code" ? "default" : "outline"} size="sm" className="h-8" onClick={() => setMode("code")}>
+            <Code2 className="mr-1.5 h-4 w-4" /> Code
+          </Button>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => toggleFavorite(id)}>
+            <Star className={cn("h-4 w-4", isFav && "fill-current text-amber-500")} />
+          </Button>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={downloadProject}>
+            <Download className="h-4 w-4" />
+          </Button>
+          <Button size="sm" className="h-8 bg-blue-600 hover:bg-blue-700" onClick={save}>
+            <Save className="mr-1.5 h-4 w-4" /> Save
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={remove}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
+      </header>
 
-        {/* Tags */}
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          {tags.map(t => (
-            <span key={t} className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-full bg-accent text-accent-foreground text-xs font-medium">
-              {t}
-              <button onClick={() => { setTags(tags.filter(x => x !== t)); setDirty(true); }} className="h-5 w-5 rounded-full hover:bg-accent-foreground/10 flex items-center justify-center">
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          ))}
-          <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-card/80 border border-border">
-            <input
-              value={tagInput}
-              onChange={e => setTagInput(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
-              placeholder="Add tag"
-              className="bg-transparent text-xs w-24 focus:outline-none"
-            />
-            <button onClick={addTag} className="h-5 w-5 rounded-full hover:bg-accent flex items-center justify-center text-muted-foreground">
-              <Plus className="h-3 w-3" />
-            </button>
-          </div>
-        </div>
-
-        {/* Preview actions */}
-        <div className="mt-8 rounded-3xl bg-card/90 backdrop-blur-xl border border-border shadow-elegant overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-secondary">
-              <ViewBtn active={view === "preview"} onClick={() => setView("preview")} icon={Eye} label="Preview" />
-              <ViewBtn active={view === "code"} onClick={() => setView("code")} icon={Code} label="Source" />
+      <main className="grid h-[calc(100vh-48px)] grid-cols-[320px_1fr_340px]">
+        <aside className="flex min-h-0 flex-col border-r border-border bg-[#f4f0e9]">
+          <div className="border-b border-border p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Bot className="h-4 w-4" /> AI Agent
+              </div>
+              <span className="rounded-full bg-card px-2 py-1 text-[11px] font-medium">{tokens.remaining}/20 tokens</span>
             </div>
-            <button
-              onClick={() => {
-                const w = window.open("", "_blank");
-                if (w) { w.document.write(previewSrc); w.document.close(); }
-              }}
-              className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
-            >
-              <ExternalLink className="h-3.5 w-3.5" /> Open in new tab
-            </button>
+            <p className="text-xs leading-5 text-muted-foreground">
+              Gemini key add hone ke baad yahi chat real API se code generate karega. Abhi local generator active hai.
+            </p>
           </div>
-
-          {view === "preview" ? (
-            <iframe
-              title="Project preview"
-              srcDoc={previewSrc}
-              sandbox="allow-scripts"
-              className="w-full h-[560px] bg-white"
+          <div className="flex-1 space-y-3 overflow-y-auto p-4">
+            {messages.map((message, index) => (
+              <div key={`${message.createdAt}-${index}`} className={cn("rounded-2xl p-3 text-sm leading-6 shadow-soft", message.role === "user" ? "bg-card" : "bg-[#ebe7df]")}>
+                <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                  {message.role === "user" ? <MessageSquare className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
+                  {message.role === "user" ? "You" : "AI Agent"}
+                </div>
+                {message.content}
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-border p-3">
+            <Textarea
+              value={prompt}
+              onChange={e => setPrompt(e.target.value)}
+              onKeyDown={e => {
+                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") generate();
+              }}
+              placeholder="Describe changes: colors, sections, app logic, Supabase data..."
+              className="min-h-[88px] resize-none bg-card"
             />
+            <Button className="mt-2 w-full" onClick={generate} disabled={generating || !prompt.trim()}>
+              {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              Generate update
+            </Button>
+          </div>
+        </aside>
+
+        <section className="min-w-0 overflow-auto bg-card p-5">
+          <div className="mb-3 flex items-center justify-center">
+            <div className="flex items-center gap-2 rounded-full bg-[#f4f0e9] px-4 py-2 text-sm font-medium shadow-soft">
+              <RefreshCw className="h-4 w-4" /> {generating ? "Getting ready..." : "Preview ready"}
+            </div>
+          </div>
+          {mode === "preview" ? (
+            <div className="mx-auto h-[calc(100vh-125px)] max-w-5xl overflow-hidden rounded-2xl border border-border bg-white shadow-elegant">
+              <iframe title="Website preview" srcDoc={preview} sandbox="allow-scripts" className="h-full w-full bg-white" />
+            </div>
           ) : (
-            <pre className="p-5 text-xs overflow-auto max-h-[560px] bg-secondary/40 text-foreground whitespace-pre-wrap break-all">
-              {previewSrc}
+            <pre className="mx-auto h-[calc(100vh-125px)] max-w-5xl overflow-auto rounded-2xl border border-border bg-[#111] p-5 text-xs leading-6 text-[#e8e8e8] shadow-elegant">
+              {files[activeFile] ?? ""}
             </pre>
           )}
-        </div>
+        </section>
 
-        {app.prompt && (
-          <div className="mt-6 p-5 rounded-2xl bg-card/70 backdrop-blur border border-border">
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Original prompt</p>
-            <p className="text-sm text-foreground leading-relaxed">{app.prompt}</p>
+        <aside className="min-h-0 border-l border-border bg-card">
+          <div className="flex h-12 items-center justify-between border-b border-border px-4">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <FileCode2 className="h-4 w-4" /> Files
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
           </div>
-        )}
-      </div>
+          <div className="grid h-[calc(100%-48px)] grid-rows-[auto_1fr]">
+            <div className="space-y-1 border-b border-border p-3">
+              {fileNames.map(name => (
+                <button
+                  key={name}
+                  onClick={() => {
+                    setActiveFile(name);
+                    setMode("code");
+                  }}
+                  className={cn("flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-accent", activeFile === name && "bg-accent")}
+                >
+                  <span className="truncate">{name}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={event => {
+                      event.stopPropagation();
+                      downloadFile(name, files[name]);
+                    }}
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                  </Button>
+                </button>
+              ))}
+            </div>
+            <div className="overflow-auto p-3">
+              <p className="mb-2 text-xs font-semibold text-muted-foreground">Selected file</p>
+              <pre className="max-h-full whitespace-pre-wrap break-words rounded-xl bg-secondary/60 p-3 text-[11px] leading-5">
+                {files[activeFile] ?? ""}
+              </pre>
+            </div>
+          </div>
+        </aside>
+      </main>
     </div>
   );
 };
-
-const ViewBtn = ({ active, onClick, icon: Icon, label }: any) => (
-  <button
-    onClick={onClick}
-    className={cn(
-      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
-      active ? "bg-card shadow-soft text-foreground" : "text-muted-foreground hover:text-foreground"
-    )}
-  >
-    <Icon className="h-3.5 w-3.5" /> {label}
-  </button>
-);
 
 const AppDetails = () => (
   <ThemeProvider>

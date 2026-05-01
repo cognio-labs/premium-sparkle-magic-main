@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BarChart3, Bot, Briefcase, ChevronRight, Globe2, Grid2X2, Loader2, LogOut, Mic, PanelLeft, Plus,
   Search, Settings2, Sparkles, Trash2, User, Users, Wallet
 } from "lucide-react";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { Sidebar } from "@/components/dashboard/Sidebar";
+import { ProfileMenu } from "@/components/dashboard/ProfileMenu";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -18,6 +20,7 @@ import {
   addClient, addStock, addWebsite, clearLocalUser, dashboardStats, deleteClient,
   fetchClients, fetchStocks, fetchWebsites, generatedWebsiteHtml, publishWebsite, setLocalUser
 } from "@/lib/stockpro";
+import { consumeToken, createAppFromPrompt, getTokenState } from "@/lib/store";
 import { useAuth } from "@/contexts/AuthContext";
 
 type Tab = "dashboard" | "clients" | "stocks" | "websites" | "profile";
@@ -36,6 +39,7 @@ const Dashboard = () => {
   const [clientSearch, setClientSearch] = useState("");
   const { user, displayName, refreshProfile } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const loadData = async () => {
     setLoading(true);
@@ -75,6 +79,16 @@ const Dashboard = () => {
     toast({ title: "Logged out" });
   };
 
+  const createAiProject = (prompt: string) => {
+    if (!consumeToken()) {
+      toast({ title: "Daily tokens finished", description: "Aaj ke 20 free tokens khatam ho gaye. Pro plan lo ya kal fir 20 tokens milenge.", variant: "destructive" });
+      return;
+    }
+    const app = createAppFromPrompt(prompt);
+    toast({ title: "Project created", description: `${getTokenState().remaining} tokens remaining today.` });
+    navigate(`/app/${app.id}`);
+  };
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
       <Sidebar activeTab={tab} collapsed={collapsed} onSelectTab={setTab} onToggle={() => setCollapsed(c => !c)} />
@@ -107,15 +121,13 @@ const Dashboard = () => {
                 <p className="text-sm font-semibold">{displayName}</p>
                 <p className="text-xs text-muted-foreground">{user?.email}</p>
               </div>
-              <Button variant="secondary" size="sm" onClick={logout}>
-                <LogOut className="h-4 w-4 mr-2" /> Logout
-              </Button>
+              <ProfileMenu name={displayName} email={user?.email ?? ""} onLogout={logout} />
             </div>
           </header>
 
           <section className="px-8 pb-8 space-y-5">
             {error && <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error}</div>}
-            {tab === "dashboard" && <DashboardTab loading={loading} stats={stats} />}
+            {tab === "dashboard" && <DashboardTab loading={loading} stats={stats} onCreate={createAiProject} />}
             {tab === "clients" && (
               <ClientsTab clients={filteredClients} allClients={clients} search={clientSearch} setSearch={setClientSearch} loading={loading} onRefresh={loadData} />
             )}
@@ -131,15 +143,27 @@ const Dashboard = () => {
   );
 };
 
-const DashboardTab = ({ loading, stats }: { loading: boolean; stats: Awaited<ReturnType<typeof dashboardStats>> }) => (
+const DashboardTab = ({ loading, stats, onCreate }: { loading: boolean; stats: Awaited<ReturnType<typeof dashboardStats>>; onCreate: (prompt: string) => void }) => {
+  const [prompt, setPrompt] = useState("");
+  const tokens = getTokenState();
+  const submit = () => {
+    const value = prompt.trim();
+    if (!value) return;
+    onCreate(value);
+  };
+
+  return (
   <div className="space-y-0">
     <section className="mx-auto flex min-h-[430px] w-full max-w-[860px] flex-col items-center justify-center pt-8 text-center">
       <h1 className="text-[28px] font-semibold tracking-normal text-foreground md:text-[30px]">What will you build next?</h1>
       <div className="mt-7 w-full rounded-xl border border-white/80 bg-white/50 p-3 text-left shadow-soft backdrop-blur-sm">
         <div className="rounded-xl border border-border/70 bg-card p-3 shadow-soft">
           <Textarea
-            readOnly
-            value=""
+            value={prompt}
+            onChange={e => setPrompt(e.target.value)}
+            onKeyDown={e => {
+              if ((e.ctrlKey || e.metaKey) && e.key === "Enter") submit();
+            }}
             placeholder="Describe the app you want to create..."
             className="min-h-[92px] resize-none border-0 bg-transparent px-1 text-sm shadow-none focus-visible:ring-0"
           />
@@ -149,10 +173,10 @@ const DashboardTab = ({ loading, stats }: { loading: boolean; stats: Awaited<Ret
               <Button size="icon" variant="outline" className="h-7 w-7 rounded-md"><Settings2 className="h-3.5 w-3.5" /></Button>
             </div>
             <div className="flex items-center gap-3 text-xs">
-              <span>Plan</span>
+              <span>{tokens.remaining}/20 tokens</span>
               <span className="h-5 w-9 rounded-full bg-muted p-0.5"><span className="block h-4 w-4 rounded-full bg-white shadow-soft" /></span>
               <Mic className="h-3.5 w-3.5" />
-              <Button size="icon" className="h-8 w-8 rounded-lg bg-black text-white hover:bg-black/90"><ChevronRight className="h-4 w-4" /></Button>
+              <Button size="icon" onClick={submit} className="h-8 w-8 rounded-lg bg-black text-white hover:bg-black/90"><ChevronRight className="h-4 w-4" /></Button>
             </div>
           </div>
         </div>
@@ -201,7 +225,8 @@ const DashboardTab = ({ loading, stats }: { loading: boolean; stats: Awaited<Ret
       </div>
     </section>
   </div>
-);
+  );
+};
 
 const ClientsTab = ({ clients, allClients, search, setSearch, loading, onRefresh }: any) => (
   <Panel title="Clients" action={<AddClientButton onRefresh={onRefresh} />}>
