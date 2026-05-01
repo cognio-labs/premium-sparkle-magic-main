@@ -132,31 +132,74 @@ const Dashboard = () => {
 };
 
 const DashboardTab = ({ loading, stats }: { loading: boolean; stats: Awaited<ReturnType<typeof dashboardStats>> }) => (
-  <div className="space-y-5">
-    <div>
-      <h1 className="font-display text-5xl">StockPro</h1>
-      <p className="text-muted-foreground mt-1">Clients, portfolios, and AI websites backed by Supabase.</p>
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <StatCard icon={Users} label="Total Clients" value={loading ? "" : String(stats.totalClients)} loading={loading} />
-      <StatCard icon={Wallet} label="Portfolio Value" value={loading ? "" : currency.format(stats.portfolioValue)} loading={loading} />
-      <StatCard icon={Globe2} label="Websites Built" value={loading ? "" : String(stats.websitesBuilt)} loading={loading} />
-    </div>
-    <Panel title="Recent Activity">
-      {loading ? <SkeletonRows /> : stats.recentClients.length === 0 ? <Empty message="Koi client nahi hai. + Add Client dabao" /> : (
-        <div className="space-y-2">
-          {stats.recentClients.map(client => (
-            <div key={client.id} className="flex items-center justify-between rounded-xl bg-secondary/50 p-3">
-              <div>
-                <p className="text-sm font-medium">{client.name}</p>
-                <p className="text-xs text-muted-foreground">{new Date(client.created_at).toLocaleString()}</p>
-              </div>
-              <span className="text-sm">{currency.format(Number(client.investment_amount || 0))}</span>
+  <div className="space-y-0">
+    <section className="mx-auto flex min-h-[430px] w-full max-w-[860px] flex-col items-center justify-center pt-8 text-center">
+      <h1 className="text-[28px] font-semibold tracking-normal text-foreground md:text-[30px]">What will you build next?</h1>
+      <div className="mt-7 w-full rounded-xl border border-white/80 bg-white/50 p-3 text-left shadow-soft backdrop-blur-sm">
+        <div className="rounded-xl border border-border/70 bg-card p-3 shadow-soft">
+          <Textarea
+            readOnly
+            value=""
+            placeholder="Describe the app you want to create..."
+            className="min-h-[92px] resize-none border-0 bg-transparent px-1 text-sm shadow-none focus-visible:ring-0"
+          />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Button size="icon" variant="outline" className="h-7 w-7 rounded-md"><Plus className="h-3.5 w-3.5" /></Button>
+              <Button size="icon" variant="outline" className="h-7 w-7 rounded-md"><Settings2 className="h-3.5 w-3.5" /></Button>
             </div>
-          ))}
+            <div className="flex items-center gap-3 text-xs">
+              <span>Plan</span>
+              <span className="h-5 w-9 rounded-full bg-muted p-0.5"><span className="block h-4 w-4 rounded-full bg-white shadow-soft" /></span>
+              <Mic className="h-3.5 w-3.5" />
+              <Button size="icon" className="h-8 w-8 rounded-lg bg-black text-white hover:bg-black/90"><ChevronRight className="h-4 w-4" /></Button>
+            </div>
+          </div>
         </div>
-      )}
-    </Panel>
+        <div className="mt-3">
+          <p className="mb-2 text-xs text-muted-foreground">What would you like to create?</p>
+          <div className="flex flex-wrap gap-2">
+            {["Tasks & Workflows", "CRM & Sales", "Content & Sites", "Finance", "Booking", "... More"].map(item => (
+              <Button key={item} variant="secondary" size="sm" className="h-7 rounded-md bg-card px-3 text-xs font-medium shadow-soft">
+                {item}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section className="mx-auto w-full max-w-[1036px] rounded-t-2xl bg-card p-7 shadow-elegant">
+      <div className="mb-5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-7 rounded-md px-3 text-xs">Recent apps</Button>
+          <Button variant="ghost" size="sm" className="h-7 rounded-md px-3 text-xs">Templates</Button>
+        </div>
+        <Button variant="ghost" size="sm" className="h-7 rounded-md px-3 text-xs">
+          View all <ChevronRight className="ml-1 h-3.5 w-3.5" />
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <StatCard icon={Users} label="Total Clients" value={loading ? "" : String(stats.totalClients)} loading={loading} />
+        <StatCard icon={Wallet} label="Portfolio Value" value={loading ? "" : currency.format(stats.portfolioValue)} loading={loading} />
+        <StatCard icon={Globe2} label="Websites Built" value={loading ? "" : String(stats.websitesBuilt)} loading={loading} />
+      </div>
+      <div className="mt-5">
+        {loading ? <SkeletonRows /> : stats.recentClients.length === 0 ? <Empty message="Koi client nahi hai. All apps me jaakar Add Client dabao." /> : (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {stats.recentClients.map(client => (
+              <div key={client.id} className="flex items-center justify-between rounded-xl border border-border bg-secondary/30 p-3">
+                <div>
+                  <p className="text-sm font-medium">{client.name}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(client.created_at).toLocaleString()}</p>
+                </div>
+                <span className="text-sm">{currency.format(Number(client.investment_amount || 0))}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
   </div>
 );
 
