@@ -93,6 +93,7 @@ const Dashboard = () => {
         appName: app.name,
         prompt,
         files: app.files,
+        model: "gemini-flash-latest",
       });
       app.name = generated.name || app.name;
       app.tags = generated.tags || app.tags;

@@ -12,7 +12,7 @@ import {
   consumeToken, getApp, getApps, getTokenState,
   saveApps, toggleFavorite, upsertApp, useFavorites, type App
 } from "@/lib/store";
-import { generateWebsiteWithGemini } from "@/lib/gemini";
+import { GEMINI_MODEL_OPTIONS, generateWebsiteWithGemini } from "@/lib/gemini";
 import { cn } from "@/lib/utils";
 
 const AppDetailsInner = () => {
@@ -25,6 +25,7 @@ const AppDetailsInner = () => {
   const [mode, setMode] = useState<"preview" | "code">("preview");
   const [activeFile, setActiveFile] = useState("index.html");
   const [prompt, setPrompt] = useState("");
+  const [model, setModel] = useState("gemini-flash-latest");
   const [generating, setGenerating] = useState(false);
   const tokens = getTokenState();
 
@@ -66,6 +67,7 @@ const AppDetailsInner = () => {
         appName: app.name,
         prompt: mergedPrompt,
         files,
+        model,
       });
       updateApp({
         ...app,
@@ -162,6 +164,13 @@ const AppDetailsInner = () => {
               </div>
               <span className="rounded-full bg-card px-2 py-1 text-[11px] font-medium">{tokens.remaining}/20 tokens</span>
             </div>
+            <select
+              value={model}
+              onChange={event => setModel(event.target.value)}
+              className="mb-3 h-9 w-full rounded-lg border border-border bg-card px-3 text-xs"
+            >
+              {GEMINI_MODEL_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
+            </select>
             <p className="text-xs leading-5 text-muted-foreground">
               Gemini agent active hai. Chat se website, code files, preview aur Supabase-ready structure update hoga.
             </p>
