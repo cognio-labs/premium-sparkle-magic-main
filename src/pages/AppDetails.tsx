@@ -9,9 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
-  consumeToken, generateProjectFiles, getApp, getApps, getTokenState,
+  consumeToken, getApp, getApps, getTokenState,
   saveApps, toggleFavorite, upsertApp, useFavorites, type App
 } from "@/lib/store";
+import { generateWebsiteWithGemini } from "@/lib/gemini";
 import { cn } from "@/lib/utils";
 
 const AppDetailsInner = () => {
@@ -51,7 +52,7 @@ const AppDetailsInner = () => {
     setApp(next);
   };
 
-  const generate = () => {
+  const generate = async () => {
     const value = prompt.trim();
     if (!value) return;
     if (!consumeToken()) {
@@ -59,24 +60,37 @@ const AppDetailsInner = () => {
       return;
     }
     setGenerating(true);
-    window.setTimeout(() => {
+    try {
       const mergedPrompt = `${app.prompt ?? app.name}\n\nUpdate request: ${value}`;
-      const generated = generateProjectFiles(mergedPrompt, app.name);
+      const generated = await generateWebsiteWithGemini({
+        appName: app.name,
+        prompt: mergedPrompt,
+        files,
+      });
       updateApp({
         ...app,
-        ...generated,
+        name: generated.name || app.name,
+        tags: generated.tags || app.tags,
+        preview: generated.preview,
+        files: generated.files,
         prompt: mergedPrompt,
         messages: [
           ...messages,
           { role: "user", content: value, createdAt: Date.now() },
-          { role: "assistant", content: "Updated the website files and refreshed the preview.", createdAt: Date.now() + 1 },
+          { role: "assistant", content: generated.reply, createdAt: Date.now() + 1 },
         ],
         updatedAt: Date.now(),
       });
       setPrompt("");
+      toast({
+        title: generated.usedFallback ? "Updated locally" : "Gemini updated website",
+        description: `${getTokenState().remaining} tokens remaining today.`,
+      });
+    } catch (error: any) {
+      toast({ title: "Gemini failed", description: error?.message || "Could not generate website.", variant: "destructive" });
+    } finally {
       setGenerating(false);
-      toast({ title: "Updated", description: `${getTokenState().remaining} tokens remaining today.` });
-    }, 600);
+    }
   };
 
   const save = () => {
@@ -149,7 +163,7 @@ const AppDetailsInner = () => {
               <span className="rounded-full bg-card px-2 py-1 text-[11px] font-medium">{tokens.remaining}/20 tokens</span>
             </div>
             <p className="text-xs leading-5 text-muted-foreground">
-              Gemini key add hone ke baad yahi chat real API se code generate karega. Abhi local generator active hai.
+              Gemini agent active hai. Chat se website, code files, preview aur Supabase-ready structure update hoga.
             </p>
           </div>
           <div className="flex-1 space-y-3 overflow-y-auto p-4">
