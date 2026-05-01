@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  BarChart3, Briefcase, Globe2, Loader2, LogOut, PanelLeft, Plus,
-  Search, Trash2, TrendingUp, User, Users, Wallet
+  BarChart3, Bot, Briefcase, ChevronRight, Globe2, Grid2X2, Loader2, LogOut, Mic, PanelLeft, Plus,
+  Search, Settings2, Sparkles, Trash2, User, Users, Wallet
 } from "lucide-react";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { Sidebar } from "@/components/dashboard/Sidebar";
@@ -77,25 +77,30 @@ const Dashboard = () => {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
-      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(c => !c)} />
+      <Sidebar activeTab={tab} collapsed={collapsed} onSelectTab={setTab} onToggle={() => setCollapsed(c => !c)} />
       <main className="flex-1 relative overflow-y-auto scrollbar-thin">
         <div className="absolute inset-0 bg-gradient-warm pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-aurora opacity-70 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-aurora opacity-60 pointer-events-none" />
         <div className="relative z-10 min-h-full flex flex-col">
-          <header className="flex items-center justify-between px-6 py-4 gap-4">
+          <header className="flex items-center justify-between px-2 py-2 gap-4">
             <button onClick={() => setCollapsed(c => !c)} className="h-9 w-9 rounded-lg hover:bg-card/60 flex items-center justify-center text-foreground/70 transition-colors">
               <PanelLeft className="h-4 w-4" />
             </button>
-            <div className="flex items-center gap-1 p-1 rounded-2xl bg-card/80 backdrop-blur-xl border border-border shadow-soft overflow-x-auto">
-              {(["dashboard", "clients", "stocks", "websites", "profile"] as Tab[]).map(item => (
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-card/80 backdrop-blur-xl border border-border shadow-soft overflow-x-auto">
+              {[
+                { key: "dashboard", label: "Apps", icon: Grid2X2 },
+                { key: "clients", label: "Superagents", icon: Bot },
+              ].map(({ key, label, icon: Icon }) => (
                 <button
-                  key={item}
-                  onClick={() => setTab(item)}
-                  className={cn("px-3.5 py-1.5 rounded-xl text-xs font-medium capitalize transition-all whitespace-nowrap", tab === item ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground")}
+                  key={key}
+                  onClick={() => setTab(key as Tab)}
+                  className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap", tab === key ? "bg-card text-foreground shadow-soft" : "text-muted-foreground hover:text-foreground")}
                 >
-                  {item}
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
                 </button>
               ))}
+              <span className="rounded-md bg-indigo-100 px-2 py-1 text-[11px] font-medium text-indigo-700">New</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="hidden sm:block text-right">
@@ -108,7 +113,7 @@ const Dashboard = () => {
             </div>
           </header>
 
-          <section className="px-6 pb-8 space-y-5">
+          <section className="px-8 pb-8 space-y-5">
             {error && <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error}</div>}
             {tab === "dashboard" && <DashboardTab loading={loading} stats={stats} />}
             {tab === "clients" && (
