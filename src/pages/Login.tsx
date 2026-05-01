@@ -20,6 +20,16 @@ const LoginInner = () => {
 
   if (!authLoading && user) return <Navigate to="/" replace />;
 
+  const grantLocalAccess = (message: string, name = email.split("@")[0] || "StockPro User") => {
+    setLocalUser(email, name);
+    setLoading(false);
+    toast({
+      title: "Access granted",
+      description: message,
+    });
+    navigate("/");
+  };
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
@@ -32,6 +42,10 @@ const LoginInner = () => {
     }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
+      if (import.meta.env.DEV) {
+        grantLocalAccess(`Supabase login failed (${error.message}), so local dev mode is active.`);
+        return;
+      }
       if (error.message.toLowerCase().includes("invalid login credentials")) {
         const name = email.split("@")[0] || "StockPro User";
         const { data: signupData, error: signupError } = await supabase.auth.signUp({
@@ -40,25 +54,27 @@ const LoginInner = () => {
           options: { data: { name } },
         });
         if (!signupError && signupData.user) {
-          await supabase.from("profiles").upsert({ id: signupData.user.id, name });
+          const { error: profileError } = await supabase.from("profiles").upsert({ id: signupData.user.id, name });
+          if (profileError && import.meta.env.DEV) {
+            grantLocalAccess(`Supabase profile save failed (${profileError.message}), so local dev mode is active.`, name);
+            return;
+          }
         }
         setLoading(false);
         if (signupError) {
-          setLocalUser(email, name);
-          toast({
-            title: "Access granted",
-            description: `Supabase signup failed (${signupError.message}), so local dev mode is active.`,
-          });
-          navigate("/");
+          if (import.meta.env.DEV) {
+            grantLocalAccess(`Supabase signup failed (${signupError.message}), so local dev mode is active.`, name);
+            return;
+          }
+          toast({ title: "Login failed", description: signupError.message, variant: "destructive" });
           return;
         }
         if (!signupData.session) {
-          setLocalUser(email, name);
-          toast({
-            title: "Access granted",
-            description: "Supabase email confirmation is on, so local dev mode is active for now.",
-          });
-          navigate("/");
+          if (import.meta.env.DEV) {
+            grantLocalAccess("Supabase email confirmation is on, so local dev mode is active for now.", name);
+            return;
+          }
+          toast({ title: "Account created", description: "Please confirm your email before logging in." });
           return;
         }
         toast({ title: "Account created", description: "Login successful" });

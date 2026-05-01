@@ -21,6 +21,16 @@ const SignupInner = () => {
 
   if (!authLoading && user) return <Navigate to="/" replace />;
 
+  const grantLocalAccess = (message: string) => {
+    setLocalUser(email, name);
+    setLoading(false);
+    toast({
+      title: "Access granted",
+      description: message,
+    });
+    navigate("/");
+  };
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
@@ -37,10 +47,18 @@ const SignupInner = () => {
       options: { data: { name } },
     });
     if (!error && data.user) {
-      await supabase.from("profiles").upsert({ id: data.user.id, name });
+      const { error: profileError } = await supabase.from("profiles").upsert({ id: data.user.id, name });
+      if (profileError && import.meta.env.DEV) {
+        grantLocalAccess(`Supabase profile save failed (${profileError.message}), so local dev mode is active.`);
+        return;
+      }
     }
     setLoading(false);
     if (error) {
+      if (import.meta.env.DEV) {
+        grantLocalAccess(`Supabase signup failed (${error.message}), so local dev mode is active.`);
+        return;
+      }
       toast({ title: "Signup failed", description: error.message, variant: "destructive" });
       return;
     }
