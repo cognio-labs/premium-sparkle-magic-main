@@ -145,14 +145,14 @@ const AppDetailsInner = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant={mode === "preview" ? "default" : "outline"} size="sm" className="h-8" onClick={() => setMode("preview")}>
+          <Button variant={mode === "preview" ? "default" : "outline"} size="sm" className="h-8" onClick={openPreview}>
             <Eye className="mr-1.5 h-4 w-4" /> Preview
           </Button>
           <Button variant={mode === "code" ? "default" : "outline"} size="sm" className="h-8" onClick={() => setMode("code")}>
             <Code2 className="mr-1.5 h-4 w-4" /> Code
           </Button>
-          <Button variant="outline" size="sm" className="h-8" onClick={openPreview}>
-            <ExternalLink className="mr-1.5 h-4 w-4" /> Full preview
+          <Button variant="outline" size="sm" className="h-8" onClick={() => setMode("preview")}>
+            <ExternalLink className="mr-1.5 h-4 w-4" /> Canvas
           </Button>
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => toggleFavorite(id)}>
             <Star className={cn("h-4 w-4", isFav && "fill-current text-amber-500")} />
