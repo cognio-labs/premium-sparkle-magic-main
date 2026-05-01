@@ -21,7 +21,8 @@ import {
   addClient, addStock, addWebsite, clearLocalUser, dashboardStats, deleteClient,
   fetchClients, fetchStocks, fetchWebsites, generatedWebsiteHtml, publishWebsite, setLocalUser
 } from "@/lib/stockpro";
-import { consumeToken, createAppFromPrompt, getTokenState } from "@/lib/store";
+import { consumeToken, createAppFromPrompt, getTokenState, upsertApp } from "@/lib/store";
+import { generateWebsiteWithGemini } from "@/lib/gemini";
 import { useAuth } from "@/contexts/AuthContext";
 
 type Tab = "dashboard" | "apps" | "clients" | "stocks" | "websites" | "profile";
@@ -81,13 +82,32 @@ const Dashboard = () => {
     toast({ title: "Logged out" });
   };
 
-  const createAiProject = (prompt: string) => {
+  const createAiProject = async (prompt: string) => {
     if (!consumeToken()) {
       toast({ title: "Daily tokens finished", description: "Aaj ke 20 free tokens khatam ho gaye. Pro plan lo ya kal fir 20 tokens milenge.", variant: "destructive" });
       return;
     }
     const app = createAppFromPrompt(prompt);
-    toast({ title: "Project created", description: `${getTokenState().remaining} tokens remaining today.` });
+    try {
+      const generated = await generateWebsiteWithGemini({
+        appName: app.name,
+        prompt,
+        files: app.files,
+      });
+      app.name = generated.name || app.name;
+      app.tags = generated.tags || app.tags;
+      app.preview = generated.preview;
+      app.files = generated.files;
+      app.messages = [
+        { role: "user", content: prompt, createdAt: Date.now() },
+        { role: "assistant", content: generated.reply, createdAt: Date.now() + 1 },
+      ];
+      app.updatedAt = Date.now();
+      upsertApp(app);
+      toast({ title: generated.usedFallback ? "Project created locally" : "Gemini project created", description: `${getTokenState().remaining} tokens remaining today.` });
+    } catch (error: any) {
+      toast({ title: "Project created locally", description: error?.message || `${getTokenState().remaining} tokens remaining today.` });
+    }
     navigate(`/app/${app.id}`);
   };
 
