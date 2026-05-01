@@ -1,4 +1,4 @@
-const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
 
 type GeminiPayload = {
   appName?: string;
@@ -29,44 +29,55 @@ export default async function handler(req: any, res: any) {
 
 export async function callGemini(apiKey: string, payload: GeminiPayload) {
   const prompt = buildPrompt(payload);
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-goog-api-key": apiKey,
-    },
-    body: JSON.stringify({
-      systemInstruction: {
-        parts: [{ text: "You are a senior full-stack product engineer. Return only valid JSON. Do not wrap the JSON in markdown." }],
-      },
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.7,
-        responseMimeType: "application/json",
-      },
-    }),
-  });
+  let lastError = "";
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Gemini API failed (${response.status}): ${text}`);
+  for (const model of GEMINI_MODELS) {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: "You are a senior full-stack product engineer. Return only valid JSON. Do not wrap the JSON in markdown." }],
+        },
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          responseMimeType: "application/json",
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      lastError = `Gemini API failed (${response.status}) on ${model}: ${text}`;
+      if (response.status === 429 || response.status === 503 || response.status === 404) continue;
+      throw new Error(lastError);
+    }
+
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.map((part: any) => part.text ?? "").join("").trim();
+    if (!text) {
+      lastError = `Gemini returned an empty response on ${model}`;
+      continue;
+    }
+
+    const parsed = JSON.parse(text);
+    if (!parsed.files || typeof parsed.files !== "object") throw new Error("Gemini response did not include files");
+    if (!parsed.files["index.html"]) throw new Error("Gemini response did not include index.html");
+
+    return {
+      name: parsed.name,
+      reply: `${parsed.reply || "Website generated."} (${model})`,
+      tags: Array.isArray(parsed.tags) ? parsed.tags : ["website", "ai"],
+      preview: parsed.files["index.html"],
+      files: parsed.files,
+    };
   }
 
-  const data = await response.json();
-  const text = data?.candidates?.[0]?.content?.parts?.map((part: any) => part.text ?? "").join("").trim();
-  if (!text) throw new Error("Gemini returned an empty response");
-
-  const parsed = JSON.parse(text);
-  if (!parsed.files || typeof parsed.files !== "object") throw new Error("Gemini response did not include files");
-  if (!parsed.files["index.html"]) throw new Error("Gemini response did not include index.html");
-
-  return {
-    name: parsed.name,
-    reply: parsed.reply || "Website generated.",
-    tags: Array.isArray(parsed.tags) ? parsed.tags : ["website", "ai"],
-    preview: parsed.files["index.html"],
-    files: parsed.files,
-  };
+  throw new Error(lastError || "Gemini generation failed");
 }
 
 function buildPrompt(payload: GeminiPayload) {
