@@ -7,6 +7,7 @@ import {
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { ProfileMenu } from "@/components/dashboard/ProfileMenu";
+import { RecentApps } from "@/components/dashboard/RecentApps";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,7 @@ import {
 import { consumeToken, createAppFromPrompt, getTokenState } from "@/lib/store";
 import { useAuth } from "@/contexts/AuthContext";
 
-type Tab = "dashboard" | "clients" | "stocks" | "websites" | "profile";
+type Tab = "dashboard" | "apps" | "clients" | "stocks" | "websites" | "profile";
 
 const currency = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 
@@ -37,6 +38,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [clientSearch, setClientSearch] = useState("");
+  const [appSearch, setAppSearch] = useState("");
   const { user, displayName, refreshProfile } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -128,6 +130,7 @@ const Dashboard = () => {
           <section className="px-8 pb-8 space-y-5">
             {error && <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error}</div>}
             {tab === "dashboard" && <DashboardTab loading={loading} stats={stats} onCreate={createAiProject} />}
+            {tab === "apps" && <AppsTab query={appSearch} setQuery={setAppSearch} />}
             {tab === "clients" && (
               <ClientsTab clients={filteredClients} allClients={clients} search={clientSearch} setSearch={setClientSearch} loading={loading} onRefresh={loadData} />
             )}
@@ -227,6 +230,22 @@ const DashboardTab = ({ loading, stats, onCreate }: { loading: boolean; stats: A
   </div>
   );
 };
+
+const AppsTab = ({ query, setQuery }: { query: string; setQuery: (value: string) => void }) => (
+  <div className="space-y-5">
+    <div className="flex items-center justify-between gap-3">
+      <div>
+        <h1 className="text-3xl font-semibold">All apps</h1>
+        <p className="text-sm text-muted-foreground">Your generated websites and saved projects.</p>
+      </div>
+      <div className="relative w-full max-w-sm">
+        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search apps" className="pl-9" />
+      </div>
+    </div>
+    <RecentApps query={query} />
+  </div>
+);
 
 const ClientsTab = ({ clients, allClients, search, setSearch, loading, onRefresh }: any) => (
   <Panel title="Clients" action={<AddClientButton onRefresh={onRefresh} />}>

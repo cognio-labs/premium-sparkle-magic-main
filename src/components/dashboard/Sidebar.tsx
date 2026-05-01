@@ -7,11 +7,11 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useApps, useFavorites } from "@/lib/store";
 
-type SidebarTab = "dashboard" | "clients" | "stocks" | "websites" | "profile";
+type SidebarTab = "dashboard" | "apps" | "clients" | "stocks" | "websites" | "profile";
 
 const navMain = [
   { icon: Home, label: "Home", tab: "dashboard" as const },
-  { icon: AppWindow, label: "All apps", tab: "clients" as const },
+  { icon: AppWindow, label: "All apps", tab: "apps" as const },
   { icon: FileText, label: "Templates", tab: "stocks" as const },
   { icon: Plug, label: "Integrations", tab: "websites" as const },
 ];
