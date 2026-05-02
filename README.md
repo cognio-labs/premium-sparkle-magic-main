@@ -27,16 +27,17 @@ The builder includes a searchable prompt map with reusable prompts for system de
 Website generation now runs through this backend pipeline:
 
 ```text
-User Prompt -> LLM Router -> Gemini / OpenAI / Local LLM -> Local fallback -> Output
+User Prompt -> LLM Router -> Gemini / OpenAI / Ollama or Local LLM -> Local fallback -> Output
 ```
 
 Configure provider order in `.env`:
 
 ```bash
-LLM_PROVIDER_ORDER=gemini,openai,local-llm
+LLM_PROVIDER_ORDER=gemini,openai,ollama
 GEMINI_API_KEY=your-google-ai-studio-key
 OPENAI_API_KEY=sk-your-openai-key
 OPENAI_MODEL=gpt-4.1-mini
+LOCAL_LLM_PROVIDER=ollama
 LOCAL_LLM_URL=http://localhost:11434
 LOCAL_LLM_MODEL=llama3.1
 ```

@@ -92,7 +92,10 @@ function providerOrder(): ProviderName[] {
   const raw = process.env.LLM_PROVIDER_ORDER || "gemini,openai,local-llm";
   const parsed = raw
     .split(",")
-    .map(item => item.trim().toLowerCase())
+    .map(item => {
+      const value = item.trim().toLowerCase();
+      return value === "ollama" ? "local-llm" : value;
+    })
     .filter((item): item is ProviderName => item === "gemini" || item === "openai" || item === "local-llm");
   return parsed.length ? parsed : ["gemini", "openai", "local-llm"];
 }
@@ -125,6 +128,12 @@ async function callOpenAI(payload: GeminiPayload) {
 
 async function callLocalLLM(payload: GeminiPayload) {
   const baseUrl = process.env.LOCAL_LLM_URL?.replace(/\/$/, "");
+  const useOllamaApi = process.env.LOCAL_LLM_PROVIDER === "ollama" || baseUrl?.includes(":11434");
+
+  if (useOllamaApi) {
+    return callOllama(payload, baseUrl || "http://localhost:11434");
+  }
+
   const response = await fetch(`${baseUrl}/v1/chat/completions`, {
     method: "POST",
     headers: {
@@ -148,6 +157,29 @@ async function callLocalLLM(payload: GeminiPayload) {
 
   const data = await response.json();
   return parseProviderJson(data?.choices?.[0]?.message?.content || "", "Local LLM");
+}
+
+async function callOllama(payload: GeminiPayload, baseUrl: string) {
+  const response = await fetch(`${baseUrl}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: process.env.LOCAL_LLM_MODEL || DEFAULT_LOCAL_MODEL,
+      stream: false,
+      format: "json",
+      messages: [
+        { role: "system", content: WEBSITE_BUILDER_SYSTEM_PROMPT },
+        { role: "user", content: buildWebsitePrompt(payload) },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Ollama failed (${response.status}): ${(await response.text()).slice(0, 500)}`);
+  }
+
+  const data = await response.json();
+  return parseProviderJson(data?.message?.content || "", "Ollama");
 }
 
 function parseProviderJson(text: string, label: string) {
@@ -193,5 +225,9 @@ function localWebsiteFallback(payload: GeminiPayload) {
 }
 
 function compactError(message: string) {
-  return message.replace(/\s+/g, " ").slice(0, 260);
+  return message
+    .replace(/AIza[0-9A-Za-z_-]+/g, "[gemini-key]")
+    .replace(/sk-[0-9A-Za-z_*.-]+/g, "[openai-key]")
+    .replace(/\s+/g, " ")
+    .slice(0, 260);
 }
