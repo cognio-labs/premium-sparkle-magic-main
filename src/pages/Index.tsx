@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  BarChart3, Bot, Briefcase, ChevronRight, Globe2, Grid2X2, Loader2, LogOut, Mic, PanelLeft, Plus,
-  Search, Settings2, Sparkles, Trash2, User, Users, Wallet
+  BarChart3, Bot, Briefcase, ChevronRight, FileText, Globe2, Grid2X2, Loader2, LogOut, Mic, PanelLeft, Plus,
+  Search, Settings2, Sparkles, Trash2, User, Users, Wallet, X
 } from "lucide-react";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { Sidebar } from "@/components/dashboard/Sidebar";
@@ -168,10 +168,36 @@ const Dashboard = () => {
 
 const DashboardTab = ({ loading, stats, onCreate }: { loading: boolean; stats: Awaited<ReturnType<typeof dashboardStats>>; onCreate: (prompt: string) => void }) => {
   const [prompt, setPrompt] = useState("");
+  const [attachments, setAttachments] = useState<{ name: string; content: string }[]>([]);
+
+  const uploadDocuments = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const readableFiles = Array.from(files).slice(0, 5);
+    const nextAttachments = await Promise.all(readableFiles.map(async file => {
+      const isText = file.type.startsWith("text/") || /\.(txt|md|json|csv|html|css|js|jsx|ts|tsx|sql)$/i.test(file.name);
+      if (!isText) {
+        return {
+          name: file.name,
+          content: `[${file.name}] uploaded. Binary document content cannot be read in browser, but use this file name as context.`,
+        };
+      }
+
+      const text = await file.text();
+      return {
+        name: file.name,
+        content: text.slice(0, 12000),
+      };
+    }));
+    setAttachments(current => [...current, ...nextAttachments].slice(-5));
+  };
+
   const submit = () => {
     const value = prompt.trim();
-    if (!value) return;
-    onCreate(value);
+    if (!value && attachments.length === 0) return;
+    const documentContext = attachments.length
+      ? `\n\nUploaded document context:\n${attachments.map(file => `--- ${file.name} ---\n${file.content}`).join("\n\n")}`
+      : "";
+    onCreate(`${value || "Create an app from the uploaded documents."}${documentContext}`);
   };
 
   return (
@@ -189,10 +215,47 @@ const DashboardTab = ({ loading, stats, onCreate }: { loading: boolean; stats: A
             placeholder="Describe the app you want to create..."
             className="min-h-[92px] resize-none border-0 bg-transparent px-1 text-sm shadow-none focus-visible:ring-0"
           />
+          {attachments.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {attachments.map(file => (
+                <span key={file.name} className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-border bg-secondary/70 px-2 py-1 text-xs">
+                  <FileText className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{file.name}</span>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${file.name}`}
+                    className="rounded-sm text-muted-foreground hover:text-foreground"
+                    onClick={() => setAttachments(current => current.filter(item => item.name !== file.name))}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Button size="icon" variant="outline" className="h-7 w-7 rounded-md"><Plus className="h-3.5 w-3.5" /></Button>
-              <Button size="icon" variant="outline" className="h-7 w-7 rounded-md"><Settings2 className="h-3.5 w-3.5" /></Button>
+              <input
+                id="dashboard-document-upload"
+                type="file"
+                multiple
+                className="sr-only"
+                accept=".txt,.md,.json,.csv,.html,.css,.js,.jsx,.ts,.tsx,.sql,.pdf,.doc,.docx"
+                onChange={event => {
+                  uploadDocuments(event.target.files);
+                  event.currentTarget.value = "";
+                }}
+              />
+              <Button asChild size="icon" variant="outline" className="h-7 w-7 rounded-md" title="Upload file or document">
+                <label htmlFor="dashboard-document-upload" aria-label="Upload file or document" className="cursor-pointer">
+                  <Plus className="h-3.5 w-3.5" />
+                </label>
+              </Button>
+              <Button asChild size="icon" variant="outline" className="h-7 w-7 rounded-md" title="Attach document">
+                <label htmlFor="dashboard-document-upload" aria-label="Attach document" className="cursor-pointer">
+                  <Settings2 className="h-3.5 w-3.5" />
+                </label>
+              </Button>
             </div>
             <div className="flex items-center gap-3 text-xs">
               <span className="h-5 w-9 rounded-full bg-muted p-0.5"><span className="block h-4 w-4 rounded-full bg-white shadow-soft" /></span>
