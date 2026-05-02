@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index.tsx";
 import AppDetails from "./pages/AppDetails.tsx";
+import Builder from "./pages/Builder.tsx";
 import Login from "./pages/Login.tsx";
 import Signup from "./pages/Signup.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/signup" element={<Signup />} />
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<Index />} />
+              <Route path="/builder" element={<Builder />} />
               <Route path="/app/:id" element={<AppDetails />} />
             </Route>
             <Route path="*" element={<NotFound />} />
