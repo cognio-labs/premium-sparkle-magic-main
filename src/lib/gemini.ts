@@ -38,9 +38,11 @@ export async function generateWebsiteWithGemini(input: GenerateInput) {
     };
   }
 
+  const data = await response.json();
+
   return {
-    ...(await response.json()),
-    usedFallback: false,
+    ...data,
+    usedFallback: Boolean(data.usedFallback),
   } as {
     name?: string;
     reply: string;

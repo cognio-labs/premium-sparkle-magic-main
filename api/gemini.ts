@@ -66,7 +66,7 @@ export async function callGemini(apiKey: string, payload: GeminiPayload) {
     if (!response.ok) {
       const text = await response.text();
       lastError = `Gemini API failed (${response.status}) on ${model}: ${text}`;
-      if (response.status === 429 || response.status === 503 || response.status === 404) continue;
+      if (response.status === 404 || response.status === 503) continue;
       throw new Error(lastError);
     }
 

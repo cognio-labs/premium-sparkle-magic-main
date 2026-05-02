@@ -11,6 +11,7 @@ import {
   readGeneratedFile,
 } from "../api/llm";
 import { callGemini } from "../api/gemini";
+import { generateProjectFiles } from "../src/lib/store";
 
 dotenv.config();
 
@@ -24,9 +25,14 @@ app.post("/api/gemini", async (req: Request, res: Response) => {
   await handle(res, async () => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw withStatus(500, "Missing GEMINI_API_KEY in .env");
+      return localWebsiteFallback(req.body, "Gemini API key is not configured.");
     }
-    return callGemini(apiKey, req.body ?? {});
+
+    try {
+      return await callGemini(apiKey, req.body ?? {});
+    } catch {
+      return localWebsiteFallback(req.body, "Gemini is unavailable right now.");
+    }
   });
 });
 
@@ -114,4 +120,19 @@ function withStatus(status: number, message: string) {
   const error = new Error(message) as Error & { status?: number };
   error.status = status;
   return error;
+}
+
+function localWebsiteFallback(payload: any, reason: string) {
+  const appName = payload?.appName || "Website Draft";
+  const prompt = payload?.prompt || "Create a professional responsive website";
+  const fallback = generateProjectFiles(prompt, appName);
+
+  return {
+    ...fallback,
+    name: appName,
+    reply: "Website draft ready. I created a complete responsive layout with sections, animations, CTA, contact form, and editable project files.",
+    tags: ["website", "local-draft"],
+    usedFallback: true,
+    fallbackReason: reason,
+  };
 }
