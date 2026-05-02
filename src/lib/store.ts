@@ -167,13 +167,14 @@ export function generateProjectFiles(prompt: string, name = titleFromPrompt(prom
       .brand { font-weight: 800; letter-spacing: .02em; color: #0f172a; }
       .links { display: flex; align-items: center; gap: 18px; font-size: 14px; color: #475467; }
       .nav-cta, .btn { border: 0; border-radius: 10px; padding: 12px 16px; font-weight: 700; background: ${accent}; color: white; cursor: pointer; }
+      .nav-cta:hover, .btn:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(15,23,42,.18); }
       .hero { min-height: 88vh; display: grid; grid-template-columns: minmax(0,1.05fr) minmax(320px,.95fr); gap: 48px; align-items: center; padding: 82px 7vw 64px; background: linear-gradient(135deg, #ffffff 0%, #eef7ff 48%, #dbeafe 100%); }
       .eyebrow { width: fit-content; border: 1px solid rgba(0,0,0,.08); border-radius: 999px; padding: 8px 12px; font-size: 13px; font-weight: 700; color: ${accent}; background: rgba(255,255,255,.72); }
       h1 { margin: 18px 0 0; font-size: clamp(42px, 6vw, 82px); line-height: .96; letter-spacing: 0; color: #0f172a; }
       .lead { margin: 22px 0 0; max-width: 660px; font-size: 19px; line-height: 1.7; color: #475467; }
       .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
       .btn.secondary { background: white; color: #0f172a; border: 1px solid #d0d5dd; }
-      .visual { min-height: 470px; border-radius: 24px; overflow: hidden; background: linear-gradient(145deg, #111827, ${accent}); box-shadow: 0 34px 90px rgba(15,23,42,.22); position: relative; }
+      .visual { min-height: 470px; border-radius: 24px; overflow: hidden; background: linear-gradient(145deg, #111827, ${accent}); box-shadow: 0 34px 90px rgba(15,23,42,.22); position: relative; animation: float 6s ease-in-out infinite; }
       .visual::before { content: ""; position: absolute; inset: 28px; border-radius: 18px; border: 1px solid rgba(255,255,255,.22); background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.05)); }
       .visual-card { position: absolute; left: 34px; right: 34px; bottom: 34px; border-radius: 18px; background: rgba(255,255,255,.92); padding: 24px; box-shadow: 0 22px 60px rgba(0,0,0,.18); }
       .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
@@ -193,12 +194,23 @@ export function generateProjectFiles(prompt: string, name = titleFromPrompt(prom
       .split p, .split li { color: #cbd5e1; }
       .steps { display: grid; gap: 14px; }
       .step { border: 1px solid rgba(255,255,255,.12); border-radius: 16px; padding: 18px; background: rgba(255,255,255,.06); }
+      .testimonials { background: white; }
+      .quote-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 18px; }
+      .quote { border: 1px solid #e5e7eb; border-radius: 18px; padding: 22px; background: #f8fafc; }
+      .quote p { color: #475467; line-height: 1.65; }
+      .quote strong { color: #0f172a; }
+      .cta { text-align: center; background: linear-gradient(135deg, #0f172a, ${accent}); color: white; }
+      .cta h2 { margin: 0 auto 14px; max-width: 780px; color: white; font-size: clamp(32px,4vw,54px); line-height: 1.05; }
+      .cta p { margin: 0 auto 26px; max-width: 680px; color: rgba(255,255,255,.82); font-size: 18px; line-height: 1.7; }
       .contact { display: grid; grid-template-columns: .9fr 1.1fr; gap: 34px; background: #f8fafc; }
       form { display: grid; gap: 14px; border: 1px solid #e5e7eb; border-radius: 20px; background: white; padding: 24px; box-shadow: 0 18px 48px rgba(15,23,42,.08); }
       input, textarea { width: 100%; border: 1px solid #d0d5dd; border-radius: 10px; padding: 13px 14px; font: inherit; }
       textarea { min-height: 120px; resize: vertical; }
       footer { padding: 28px 7vw; display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; background: #0b1220; color: #cbd5e1; }
-      @media (max-width: 920px) { .hero, .split, .contact { grid-template-columns: 1fr; } .cards { grid-template-columns: 1fr; } .links { display: none; } .visual { min-height: 360px; } .metric-grid { grid-template-columns: 1fr; } }
+      .reveal { animation: rise .65s ease both; }
+      @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+      @media (max-width: 920px) { .hero, .split, .contact { grid-template-columns: 1fr; } .cards, .quote-grid { grid-template-columns: 1fr; } .links { display: none; } .visual { min-height: 360px; } .metric-grid { grid-template-columns: 1fr; } }
     </style>
   </head>
   <body>
@@ -235,7 +247,7 @@ export function generateProjectFiles(prompt: string, name = titleFromPrompt(prom
         </div>
       </section>
 
-      <section id="services">
+      <section id="services" class="reveal">
         <div class="section-head">
           <h2>${content.servicesTitle}</h2>
           <p>${content.servicesIntro}</p>
@@ -245,7 +257,7 @@ export function generateProjectFiles(prompt: string, name = titleFromPrompt(prom
         </div>
       </section>
 
-      <section id="approach" class="split">
+      <section id="approach" class="split reveal">
         <div class="section-head">
           <h2>${content.approachTitle}</h2>
           <p>${content.approachIntro}</p>
@@ -255,7 +267,25 @@ export function generateProjectFiles(prompt: string, name = titleFromPrompt(prom
         </div>
       </section>
 
-      <section id="contact" class="contact">
+      <section class="testimonials reveal">
+        <div class="section-head">
+          <h2>Trusted by teams that need momentum</h2>
+          <p>Clear communication, disciplined execution, and practical recommendations keep every engagement moving.</p>
+        </div>
+        <div class="quote-grid">
+          <article class="quote"><p>"The team brought structure, clarity, and speed to a complex business challenge."</p><strong>Priya S. - Founder</strong></article>
+          <article class="quote"><p>"We finally had a roadmap that our leadership team could act on immediately."</p><strong>Rahul M. - Operations Lead</strong></article>
+          <article class="quote"><p>"Professional, focused, and measurable from the first workshop to delivery."</p><strong>Anika D. - Director</strong></article>
+        </div>
+      </section>
+
+      <section class="cta reveal">
+        <h2>Ready to turn your next idea into a working website?</h2>
+        <p>Use the agent to refine sections, colors, copy, animations, forms, and business-specific details.</p>
+        <a class="btn secondary" href="#contact">Get started</a>
+      </section>
+
+      <section id="contact" class="contact reveal">
         <div class="section-head">
           <h2>Let's build the next move</h2>
           <p>Share your goals and the team will respond with a focused plan, timeline, and recommended next steps.</p>
