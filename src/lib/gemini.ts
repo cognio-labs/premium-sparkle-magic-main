@@ -28,12 +28,11 @@ export async function generateWebsiteWithGemini(input: GenerateInput) {
 
   if (!response.ok) {
     const fallback = generateProjectFiles(input.prompt, input.appName);
-    const message = await response.text().catch(() => "");
     return {
       ...fallback,
       name: input.appName,
-      reply: `Gemini unavailable, local generator used. ${message}`,
-      tags: ["website", "ai"],
+      reply: "AI provider unavailable, so I created a complete local website draft instead. Add a fresh Gemini API key to enable cloud generation.",
+      tags: ["website", "local-draft"],
       usedFallback: true,
     };
   }
