@@ -39,16 +39,26 @@ OPENAI_API_KEY=sk-your-openai-key
 OPENAI_MODEL=gpt-4.1-mini
 LOCAL_LLM_PROVIDER=ollama
 LOCAL_LLM_URL=http://localhost:11434
-LOCAL_LLM_MODEL=gemma4
+LOCAL_LLM_MODEL=qwen3
+OLLAMA_MODELS=qwen3,mistral,llama3,codellama
 ```
 
-This uses Ollama's local chat API internally, equivalent to:
+This uses Ollama's local chat API internally. The router tries configured models in order:
+
+```ts
+await callOllama("create website", "qwen3");
+await callOllama("create website", "mistral");
+await callOllama("create website", "llama3");
+await callOllama("create website", "codellama");
+```
+
+Equivalent Ollama JS shape:
 
 ```ts
 import ollama from "ollama";
 
 const response = await ollama.chat({
-  model: "gemma4",
+  model: "qwen3",
   messages: [{ role: "user", content: "Hello!" }],
 });
 ```
@@ -58,6 +68,10 @@ Ollama helper commands:
 ```bash
 npm run ollama:serve
 npm run ollama:pull
+npm run ollama:pull:mistral
+npm run ollama:pull:llama3
+npm run ollama:pull:codellama
+npm run ollama:pull:all
 npm run ollama:run
 npm run ollama:claude
 ```
@@ -65,7 +79,7 @@ npm run ollama:claude
 `npm run ollama:claude` runs:
 
 ```bash
-ollama launch claude --model gemma4
+ollama launch claude --model qwen3
 ```
 
 Router status:
