@@ -38,7 +38,7 @@ const AppDetailsInner = () => {
           ...(current.messages ?? []),
           {
             role: "assistant",
-            content: "I repaired the local draft and converted the raw prompt output into a complete website layout.",
+            content: "Website draft ready. I converted the project into a complete responsive website layout with polished sections and editable files.",
             createdAt: Date.now(),
           },
         ],

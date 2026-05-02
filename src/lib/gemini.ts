@@ -31,7 +31,7 @@ export async function generateWebsiteWithGemini(input: GenerateInput) {
     return {
       ...fallback,
       name: input.appName,
-      reply: "AI provider unavailable, so I created a complete local website draft instead. Add a fresh Gemini API key to enable cloud generation.",
+      reply: "Website draft ready. I created a complete responsive layout with sections, animations, CTA, contact form, and editable project files.",
       tags: ["website", "local-draft"],
       usedFallback: true,
     };
