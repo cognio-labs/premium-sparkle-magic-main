@@ -9,6 +9,11 @@ npm install
 npm run dev
 ```
 
+This starts both servers:
+
+- Express backend: `http://localhost:3001`
+- Vite frontend: `http://localhost:8080`
+
 Open `http://localhost:8080`.
 
 ## LLM Builder
@@ -17,7 +22,7 @@ Go to `/builder` from the dashboard header.
 
 The builder includes a searchable prompt map with reusable prompts for system design, AI workflows, backend development, and coding/debugging. Selecting a prompt inserts it into the generator input.
 
-Local dev endpoints are mounted by Vite:
+Frontend requests are proxied to the Express backend:
 
 - `POST /api/generate`
 - `POST /api/generate-full-page`
