@@ -150,8 +150,8 @@ export function consumeToken(count = 1) {
 
 export function generateProjectFiles(prompt: string, name = titleFromPrompt(prompt)) {
   const safeName = escapeHtml(name);
-  const safePrompt = escapeHtml(prompt);
-  const accent = prompt.toLowerCase().includes("finance") ? "#2563eb" : prompt.toLowerCase().includes("space") ? "#ff5f1f" : "#111827";
+  const content = inferSiteContent(prompt, name);
+  const accent = content.accent;
   const html = `<!doctype html>
 <html lang="en">
   <head>
@@ -160,46 +160,119 @@ export function generateProjectFiles(prompt: string, name = titleFromPrompt(prom
     <title>${safeName}</title>
     <style>
       * { box-sizing: border-box; }
-      body { margin: 0; font-family: Inter, system-ui, sans-serif; color: #151515; background: #faf8f4; }
-      .hero { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; background: linear-gradient(135deg, #fffaf3 0%, #ffd2ad 58%, ${accent} 100%); }
-      .copy { padding: 88px 8vw; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
-      .eyebrow { width: fit-content; border: 1px solid rgba(0,0,0,.12); border-radius: 999px; padding: 8px 12px; font-size: 13px; background: rgba(255,255,255,.55); }
-      h1 { margin: 0; font-size: clamp(42px, 6vw, 88px); line-height: .94; letter-spacing: 0; }
-      p { font-size: 18px; line-height: 1.7; color: #3d3d3d; max-width: 620px; }
-      .actions { display: flex; gap: 12px; flex-wrap: wrap; }
-      .btn { border: 0; border-radius: 12px; padding: 13px 18px; font-weight: 700; background: #111; color: white; }
-      .btn.secondary { background: rgba(255,255,255,.75); color: #111; border: 1px solid rgba(0,0,0,.1); }
-      .visual { display: flex; align-items: center; justify-content: center; padding: 48px; }
-      .panel { width: min(460px, 90%); border-radius: 24px; background: rgba(255,255,255,.82); box-shadow: 0 30px 90px rgba(0,0,0,.18); overflow: hidden; border: 1px solid rgba(255,255,255,.75); }
-      .panel-head { height: 160px; background: radial-gradient(circle at 70% 30%, #ff5f1f, transparent 45%), linear-gradient(135deg, #161616, ${accent}); }
-      .panel-body { padding: 28px; display: grid; gap: 14px; }
-      .row { border: 1px solid #ececec; border-radius: 12px; padding: 14px; background: #fff; display: flex; justify-content: space-between; }
-      @media (max-width: 820px) { .hero { grid-template-columns: 1fr; } .visual { padding-top: 0; } }
+      html { scroll-behavior: smooth; }
+      body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #101828; background: #f7f9fc; }
+      a { color: inherit; text-decoration: none; }
+      .nav { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 18px 7vw; background: rgba(255,255,255,.9); border-bottom: 1px solid #e5e7eb; backdrop-filter: blur(14px); }
+      .brand { font-weight: 800; letter-spacing: .02em; color: #0f172a; }
+      .links { display: flex; align-items: center; gap: 18px; font-size: 14px; color: #475467; }
+      .nav-cta, .btn { border: 0; border-radius: 10px; padding: 12px 16px; font-weight: 700; background: ${accent}; color: white; cursor: pointer; }
+      .hero { min-height: 88vh; display: grid; grid-template-columns: minmax(0,1.05fr) minmax(320px,.95fr); gap: 48px; align-items: center; padding: 82px 7vw 64px; background: linear-gradient(135deg, #ffffff 0%, #eef7ff 48%, #dbeafe 100%); }
+      .eyebrow { width: fit-content; border: 1px solid rgba(0,0,0,.08); border-radius: 999px; padding: 8px 12px; font-size: 13px; font-weight: 700; color: ${accent}; background: rgba(255,255,255,.72); }
+      h1 { margin: 18px 0 0; font-size: clamp(42px, 6vw, 82px); line-height: .96; letter-spacing: 0; color: #0f172a; }
+      .lead { margin: 22px 0 0; max-width: 660px; font-size: 19px; line-height: 1.7; color: #475467; }
+      .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
+      .btn.secondary { background: white; color: #0f172a; border: 1px solid #d0d5dd; }
+      .visual { min-height: 470px; border-radius: 24px; overflow: hidden; background: linear-gradient(145deg, #111827, ${accent}); box-shadow: 0 34px 90px rgba(15,23,42,.22); position: relative; }
+      .visual::before { content: ""; position: absolute; inset: 28px; border-radius: 18px; border: 1px solid rgba(255,255,255,.22); background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.05)); }
+      .visual-card { position: absolute; left: 34px; right: 34px; bottom: 34px; border-radius: 18px; background: rgba(255,255,255,.92); padding: 24px; box-shadow: 0 22px 60px rgba(0,0,0,.18); }
+      .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+      .metric { border-radius: 14px; background: #f8fafc; padding: 14px; }
+      .metric strong { display: block; font-size: 22px; color: #0f172a; }
+      section { padding: 76px 7vw; }
+      .section-head { max-width: 760px; margin-bottom: 34px; }
+      .section-head h2 { margin: 0; font-size: clamp(30px, 4vw, 48px); line-height: 1.05; color: #0f172a; }
+      .section-head p { margin: 14px 0 0; color: #667085; font-size: 17px; line-height: 1.7; }
+      .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+      .card { border: 1px solid #e5e7eb; border-radius: 18px; background: white; padding: 24px; box-shadow: 0 12px 34px rgba(15,23,42,.06); transition: transform .2s ease, box-shadow .2s ease; }
+      .card:hover { transform: translateY(-4px); box-shadow: 0 18px 42px rgba(15,23,42,.1); }
+      .card h3 { margin: 0; font-size: 20px; color: ${accent}; }
+      .card p { color: #667085; line-height: 1.65; }
+      .split { display: grid; grid-template-columns: .9fr 1.1fr; gap: 42px; align-items: start; background: #0f172a; color: white; }
+      .split h2 { color: white; }
+      .split p, .split li { color: #cbd5e1; }
+      .steps { display: grid; gap: 14px; }
+      .step { border: 1px solid rgba(255,255,255,.12); border-radius: 16px; padding: 18px; background: rgba(255,255,255,.06); }
+      .contact { display: grid; grid-template-columns: .9fr 1.1fr; gap: 34px; background: #f8fafc; }
+      form { display: grid; gap: 14px; border: 1px solid #e5e7eb; border-radius: 20px; background: white; padding: 24px; box-shadow: 0 18px 48px rgba(15,23,42,.08); }
+      input, textarea { width: 100%; border: 1px solid #d0d5dd; border-radius: 10px; padding: 13px 14px; font: inherit; }
+      textarea { min-height: 120px; resize: vertical; }
+      footer { padding: 28px 7vw; display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; background: #0b1220; color: #cbd5e1; }
+      @media (max-width: 920px) { .hero, .split, .contact { grid-template-columns: 1fr; } .cards { grid-template-columns: 1fr; } .links { display: none; } .visual { min-height: 360px; } .metric-grid { grid-template-columns: 1fr; } }
     </style>
   </head>
   <body>
-    <main class="hero">
-      <section class="copy">
-        <div class="eyebrow">Built with React, TypeScript, Node.js, Supabase and Tailwind</div>
-        <h1>${safeName}</h1>
-        <p>${safePrompt}</p>
-        <div class="actions">
-          <button class="btn">Start now</button>
-          <button class="btn secondary">View details</button>
+    <nav class="nav">
+      <a class="brand" href="#">${safeName}</a>
+      <div class="links">
+        <a href="#services">Services</a>
+        <a href="#approach">Approach</a>
+        <a href="#contact">Contact</a>
+      </div>
+      <a class="nav-cta" href="#contact">Book a call</a>
+    </nav>
+    <main>
+      <section class="hero">
+        <div>
+          <div class="eyebrow">${content.eyebrow}</div>
+          <h1>${content.heading}</h1>
+          <p class="lead">${content.lead}</p>
+          <div class="actions">
+            <a class="btn" href="#contact">Start a project</a>
+            <a class="btn secondary" href="#services">View services</a>
+          </div>
         </div>
-      </section>
-      <section class="visual">
-        <div class="panel">
-          <div class="panel-head"></div>
-          <div class="panel-body">
-            <div class="row"><strong>Frontend</strong><span>React + Tailwind</span></div>
-            <div class="row"><strong>Logic</strong><span>TypeScript</span></div>
-            <div class="row"><strong>Backend</strong><span>Node + Supabase</span></div>
-            <div class="row"><strong>Status</strong><span>Preview ready</span></div>
+        <div class="visual" aria-label="Professional website visual">
+          <div class="visual-card">
+            <strong>${content.visualTitle}</strong>
+            <p>${content.visualText}</p>
+            <div class="metric-grid">
+              <div class="metric"><strong>${content.metrics[0].value}</strong><span>${content.metrics[0].label}</span></div>
+              <div class="metric"><strong>${content.metrics[1].value}</strong><span>${content.metrics[1].label}</span></div>
+              <div class="metric"><strong>${content.metrics[2].value}</strong><span>${content.metrics[2].label}</span></div>
+            </div>
           </div>
         </div>
       </section>
+
+      <section id="services">
+        <div class="section-head">
+          <h2>${content.servicesTitle}</h2>
+          <p>${content.servicesIntro}</p>
+        </div>
+        <div class="cards">
+          ${content.services.map(service => `<article class="card"><h3>${service.title}</h3><p>${service.text}</p></article>`).join("")}
+        </div>
+      </section>
+
+      <section id="approach" class="split">
+        <div class="section-head">
+          <h2>${content.approachTitle}</h2>
+          <p>${content.approachIntro}</p>
+        </div>
+        <div class="steps">
+          ${content.steps.map((step, index) => `<div class="step"><strong>0${index + 1}. ${step.title}</strong><p>${step.text}</p></div>`).join("")}
+        </div>
+      </section>
+
+      <section id="contact" class="contact">
+        <div class="section-head">
+          <h2>Let's build the next move</h2>
+          <p>Share your goals and the team will respond with a focused plan, timeline, and recommended next steps.</p>
+        </div>
+        <form>
+          <input aria-label="Full name" placeholder="Full name" required />
+          <input aria-label="Email address" type="email" placeholder="Email address" required />
+          <input aria-label="Company" placeholder="Company" />
+          <textarea aria-label="Message" placeholder="Tell us what you want to achieve" required></textarea>
+          <button class="btn" type="button">Send message</button>
+        </form>
+      </section>
     </main>
+    <footer>
+      <strong>${safeName}</strong>
+      <span>Copyright ${new Date().getFullYear()} - Strategy, execution, and measurable outcomes.</span>
+    </footer>
   </body>
 </html>`;
 
@@ -216,6 +289,106 @@ export function generateProjectFiles(prompt: string, name = titleFromPrompt(prom
       "index.html": html,
       "README.md": `# ${name}\n\nPrompt:\n${prompt}\n\nStack: React, TypeScript, Node.js, Supabase, Tailwind CSS.\n`,
     },
+  };
+}
+
+function inferSiteContent(prompt: string, name: string) {
+  const lower = prompt.toLowerCase();
+  const isConsulting = lower.includes("consult") || lower.includes("agency") || lower.includes("strategy");
+  const isFinance = lower.includes("finance") || lower.includes("stock") || lower.includes("investment");
+  const isSaas = lower.includes("saas") || lower.includes("software") || lower.includes("dashboard");
+  const accent = isFinance ? "#2563eb" : isConsulting ? "#00a7c8" : isSaas ? "#4f46e5" : "#111827";
+  const safeName = escapeHtml(name);
+
+  if (isConsulting) {
+    return {
+      accent,
+      eyebrow: "Consulting agency website",
+      heading: `${safeName} for growth, operations, and transformation`,
+      lead: "A polished consulting presence built to explain expertise clearly, convert serious leads, and give prospects a confident path from first visit to booked call.",
+      visualTitle: "Advisory dashboard",
+      visualText: "Strategy, execution, and measurable improvement tracked in one clear engagement model.",
+      metrics: [
+        { value: "6", label: "Core services" },
+        { value: "3x", label: "Faster decisions" },
+        { value: "90d", label: "Execution cycles" },
+      ],
+      servicesTitle: "Services designed for decisive teams",
+      servicesIntro: "Each service is framed around business outcomes, clear ownership, and practical execution.",
+      services: [
+        { title: "Strategy Consulting", text: "Define priorities, market position, and a practical roadmap for the next stage of growth." },
+        { title: "Digital Transformation", text: "Modernize workflows, systems, and operating rhythm without disrupting daily execution." },
+        { title: "Operations Optimization", text: "Remove process friction, clarify ownership, and improve throughput across teams." },
+        { title: "Change Management", text: "Support adoption with communication plans, stakeholder alignment, and measurable milestones." },
+        { title: "Market Analysis", text: "Turn market signals, competitors, and customer needs into confident strategic choices." },
+        { title: "Training & Development", text: "Build team capability with focused workshops, playbooks, and leadership enablement." },
+      ],
+      approachTitle: "A practical approach from diagnosis to delivery",
+      approachIntro: "The process keeps strategy grounded in the current business reality and converts recommendations into action.",
+      steps: [
+        { title: "Discover", text: "Map goals, constraints, stakeholders, and the real causes behind current blockers." },
+        { title: "Design", text: "Create the operating plan, service roadmap, and measurable success criteria." },
+        { title: "Deliver", text: "Execute in focused cycles with weekly visibility, decisions, and next actions." },
+      ],
+    };
+  }
+
+  if (isFinance) {
+    return {
+      accent,
+      eyebrow: "Finance platform",
+      heading: `${safeName} for smarter financial decisions`,
+      lead: "A responsive website for presenting investment services, portfolio insights, and trusted advisory workflows with clarity.",
+      visualTitle: "Portfolio overview",
+      visualText: "Client holdings, risk profile, and performance signals presented for quick review.",
+      metrics: [
+        { value: "24/7", label: "Visibility" },
+        { value: "100%", label: "Tracked" },
+        { value: "3", label: "Risk levels" },
+      ],
+      servicesTitle: "Financial services with clear reporting",
+      servicesIntro: "Help clients understand what is happening, why it matters, and what to do next.",
+      services: [
+        { title: "Portfolio Planning", text: "Build allocation plans based on goals, time horizon, and risk profile." },
+        { title: "Stock Tracking", text: "Track positions, performance, and changes in a simple review workflow." },
+        { title: "Risk Review", text: "Identify exposure, concentration, and volatility before they become problems." },
+      ],
+      approachTitle: "From data to confident decisions",
+      approachIntro: "A structured process for collecting information, analyzing risk, and communicating next steps.",
+      steps: [
+        { title: "Profile", text: "Capture goals, capital, risk tolerance, and investment constraints." },
+        { title: "Analyze", text: "Review holdings, opportunities, and risks with transparent assumptions." },
+        { title: "Act", text: "Create a practical action plan and monitor results over time." },
+      ],
+    };
+  }
+
+  return {
+    accent,
+    eyebrow: isSaas ? "Product website" : "AI generated website",
+    heading: `${safeName} built for clarity and conversion`,
+    lead: "A complete responsive website draft with strong hierarchy, service sections, conversion actions, and a contact workflow.",
+    visualTitle: "Project snapshot",
+    visualText: "A ready-to-edit structure with homepage, feature cards, process section, and contact form.",
+    metrics: [
+      { value: "4", label: "Sections" },
+      { value: "100%", label: "Responsive" },
+      { value: "1", label: "Clear CTA" },
+    ],
+    servicesTitle: "What this website communicates",
+    servicesIntro: "A focused layout that explains the offer, builds trust, and guides visitors toward action.",
+    services: [
+      { title: "Clear Positioning", text: "Present the core offer with concise messaging and a strong first impression." },
+      { title: "Feature Highlights", text: "Show the most important capabilities in a scannable card layout." },
+      { title: "Lead Capture", text: "Give visitors a simple way to contact the business and start a conversation." },
+    ],
+    approachTitle: "Simple structure, easy to customize",
+    approachIntro: "The generated draft gives you a professional base that can be edited with future prompts.",
+    steps: [
+      { title: "Define", text: "Turn the request into a clear site goal and visual direction." },
+      { title: "Generate", text: "Create responsive sections with realistic copy and calls to action." },
+      { title: "Refine", text: "Use the agent chat to change colors, sections, copy, and layout." },
+    ],
   };
 }
 
