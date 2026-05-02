@@ -1,4 +1,5 @@
 export const GEMINI_MODELS = [
+  "gemini-3-flash-preview",
   "gemini-flash-latest",
   "gemini-flash-lite-latest",
   "gemini-2.5-flash",
