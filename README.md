@@ -15,6 +15,8 @@ Open `http://localhost:8080`.
 
 Go to `/builder` from the dashboard header.
 
+The builder includes a searchable prompt map with reusable prompts for system design, AI workflows, backend development, and coding/debugging. Selecting a prompt inserts it into the generator input.
+
 Local dev endpoints are mounted by Vite:
 
 - `POST /api/generate`

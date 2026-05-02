@@ -9,6 +9,7 @@ import {
   Loader2,
   Play,
   RefreshCw,
+  Search,
   Send,
   Trash2,
 } from "lucide-react";
@@ -26,6 +27,7 @@ import {
   type BuilderType,
   type GeneratedFile,
 } from "@/lib/llmBuilder";
+import { promptCategories, promptTemplates } from "@/lib/promptLibrary";
 import { cn } from "@/lib/utils";
 
 const builderTypes: { value: BuilderType; label: string; hint: string }[] = [
@@ -47,11 +49,22 @@ const BuilderInner = () => {
   const [loading, setLoading] = useState(false);
   const [filesLoading, setFilesLoading] = useState(false);
   const [output, setOutput] = useState("");
+  const [promptSearch, setPromptSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string>("All");
 
   const previewUrl = useMemo(() => {
     if (!activeFile || !/\.(tsx|jsx)$/i.test(activeFile)) return "";
     return `/api/preview/${encodeURIComponent(activeFile)}`;
   }, [activeFile]);
+
+  const filteredPrompts = useMemo(() => {
+    const query = promptSearch.trim().toLowerCase();
+    return promptTemplates.filter(item => {
+      const matchesCategory = activeCategory === "All" || item.category === activeCategory;
+      const matchesQuery = !query || `${item.title} ${item.prompt} ${item.category}`.toLowerCase().includes(query);
+      return matchesCategory && matchesQuery;
+    });
+  }, [activeCategory, promptSearch]);
 
   const refreshFiles = async () => {
     setFilesLoading(true);
@@ -190,6 +203,53 @@ const BuilderInner = () => {
 
             <div className="rounded-lg border border-border bg-card p-3 text-xs leading-5 text-muted-foreground">
               Add <span className="font-semibold text-foreground">ANTHROPIC_API_KEY</span> in .env for Claude. Without it, local fallback code is generated so the UI still works.
+            </div>
+
+            <div className="space-y-3 rounded-lg border border-border bg-card p-3">
+              <div>
+                <h2 className="text-sm font-semibold">Prompt map</h2>
+                <p className="text-xs text-muted-foreground">Search and insert reusable AI prompts.</p>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={promptSearch}
+                  onChange={event => setPromptSearch(event.target.value)}
+                  placeholder="Search prompts"
+                  className="h-9 pl-9"
+                />
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {["All", ...promptCategories].map(category => (
+                  <button
+                    key={category}
+                    onClick={() => setActiveCategory(category)}
+                    className={cn(
+                      "shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium",
+                      activeCategory === category ? "border-primary bg-primary text-primary-foreground" : "border-border bg-secondary/60 hover:bg-secondary"
+                    )}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+              <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                {filteredPrompts.slice(0, 30).map(item => (
+                  <button
+                    key={`${item.category}-${item.title}`}
+                    onClick={() => setPrompt(item.prompt)}
+                    className="w-full rounded-md border border-border bg-background p-2 text-left transition-colors hover:bg-secondary/70"
+                  >
+                    <p className="text-xs font-semibold">{item.title}</p>
+                    <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-muted-foreground">{item.prompt}</p>
+                  </button>
+                ))}
+                {filteredPrompts.length === 0 && (
+                  <div className="rounded-md border border-dashed border-border p-3 text-center text-xs text-muted-foreground">
+                    No prompt found.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </aside>
