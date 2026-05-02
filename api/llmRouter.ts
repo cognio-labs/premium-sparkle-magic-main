@@ -21,7 +21,7 @@ type WebsiteGenerationResult = {
 };
 
 const DEFAULT_OPENAI_MODEL = "gpt-4.1-mini";
-const DEFAULT_LOCAL_MODEL = "llama3.1";
+const DEFAULT_LOCAL_MODEL = "gemma4";
 
 export async function routeWebsiteGeneration(payload: GeminiPayload): Promise<WebsiteGenerationResult> {
   const attempts: RouterAttempt[] = [];

@@ -13,6 +13,10 @@
     "server": "tsx backend/server.ts",
     "server:dev": "tsx watch backend/server.ts",
     "both": "npm run dev",
+    "ollama:serve": "ollama serve",
+    "ollama:pull": "ollama pull gemma4",
+    "ollama:run": "ollama run gemma4",
+    "ollama:claude": "ollama launch claude --model gemma4",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

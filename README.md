@@ -39,7 +39,33 @@ OPENAI_API_KEY=sk-your-openai-key
 OPENAI_MODEL=gpt-4.1-mini
 LOCAL_LLM_PROVIDER=ollama
 LOCAL_LLM_URL=http://localhost:11434
-LOCAL_LLM_MODEL=llama3.1
+LOCAL_LLM_MODEL=gemma4
+```
+
+This uses Ollama's local chat API internally, equivalent to:
+
+```ts
+import ollama from "ollama";
+
+const response = await ollama.chat({
+  model: "gemma4",
+  messages: [{ role: "user", content: "Hello!" }],
+});
+```
+
+Ollama helper commands:
+
+```bash
+npm run ollama:serve
+npm run ollama:pull
+npm run ollama:run
+npm run ollama:claude
+```
+
+`npm run ollama:claude` runs:
+
+```bash
+ollama launch claude --model gemma4
 ```
 
 Router status:
