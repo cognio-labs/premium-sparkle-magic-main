@@ -307,5 +307,7 @@ function isRawPromptPreview(preview: string) {
   return preview.includes("DESIGN SYSTEM & STYLING") ||
     preview.includes("SERVICES SECTION -") ||
     preview.includes("CONTACT SECTION -") ||
-    preview.includes("Gemini unavailable, local generator used");
+    preview.includes("Gemini unavailable, local generator used") ||
+    preview.includes("built for clarity and conversion") ||
+    preview.includes("AI generated website");
 }

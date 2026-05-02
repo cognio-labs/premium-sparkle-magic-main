@@ -324,11 +324,52 @@ export function generateProjectFiles(prompt: string, name = titleFromPrompt(prom
 
 function inferSiteContent(prompt: string, name: string) {
   const lower = prompt.toLowerCase();
+  const isCoffee = lower.includes("coffee") || lower.includes("cafe") || lower.includes("espresso") || lower.includes("brew");
+  const isRestaurant = isCoffee || lower.includes("restaurant") || lower.includes("food") || lower.includes("menu");
   const isConsulting = lower.includes("consult") || lower.includes("agency") || lower.includes("strategy");
   const isFinance = lower.includes("finance") || lower.includes("stock") || lower.includes("investment");
   const isSaas = lower.includes("saas") || lower.includes("software") || lower.includes("dashboard");
-  const accent = isFinance ? "#2563eb" : isConsulting ? "#00a7c8" : isSaas ? "#4f46e5" : "#111827";
+  const accent = isRestaurant ? "#8B4513" : isFinance ? "#2563eb" : isConsulting ? "#00a7c8" : isSaas ? "#4f46e5" : "#111827";
   const safeName = escapeHtml(name);
+
+  if (isRestaurant) {
+    return {
+      accent,
+      eyebrow: isCoffee ? "Premium coffee shop website" : "Restaurant website",
+      heading: isCoffee ? `${safeName} for freshly brewed moments` : `${safeName} for memorable dining`,
+      lead: isCoffee
+        ? "A warm, modern coffee shop website with a cozy premium feel, menu highlights, customer reviews, opening hours, location details, and reservation-ready contact flow."
+        : "A responsive restaurant website built to showcase the menu, atmosphere, reviews, reservations, opening hours, and location with a polished food-focused design.",
+      visualTitle: isCoffee ? "Signature coffee menu" : "Featured dining experience",
+      visualText: isCoffee
+        ? "Espresso, cold brew, pour-over, pastries, and seasonal drinks presented for easy browsing."
+        : "Menu categories, chef recommendations, and reservation actions in a clear customer journey.",
+      metrics: [
+        { value: "12+", label: isCoffee ? "Craft drinks" : "Menu favorites" },
+        { value: "4.9", label: "Guest rating" },
+        { value: "7d", label: "Open weekly" },
+      ],
+      servicesTitle: isCoffee ? "Coffee, comfort, and community" : "Food, service, and atmosphere",
+      servicesIntro: isCoffee
+        ? "Every section is designed to help customers discover the menu, feel the vibe, and plan their visit."
+        : "A complete layout for turning hungry visitors into reservations, orders, and repeat customers.",
+      services: [
+        { title: isCoffee ? "Freshly Brewed Coffee" : "Chef-Led Menu", text: isCoffee ? "Highlight espresso, latte, cappuccino, cold brew, and signature seasonal drinks with simple pricing." : "Showcase best-selling dishes, specials, and categories with clear descriptions." },
+        { title: "Menu Highlights", text: "Feature customer favorites, daily specials, add-ons, and visual cards that are easy to scan on mobile." },
+        { title: "Reservations", text: "Give customers a fast booking path with name, phone, date, time, and party-size fields." },
+        { title: "Location & Hours", text: "Make store timing, address, phone, map-ready location details, and one-tap mobile actions easy to find." },
+        { title: "Testimonials", text: "Build trust with warm customer reviews focused on taste, service, atmosphere, and consistency." },
+        { title: "Newsletter Signup", text: "Capture subscribers for offers, new menu launches, tasting events, and local updates." },
+      ],
+      approachTitle: isCoffee ? "A cozy customer journey from craving to visit" : "A simple journey from discovery to booking",
+      approachIntro: "The layout guides visitors through brand story, menu discovery, social proof, and conversion without friction.",
+      steps: [
+        { title: "Discover", text: isCoffee ? "Visitors immediately understand the coffee shop mood, signature drinks, and reason to visit." : "Visitors see the dining style, top menu items, and atmosphere." },
+        { title: "Choose", text: "Menu cards and featured items make the next decision simple and visually clear." },
+        { title: "Visit", text: "Reservation, contact, hours, and location sections turn browsing into action." },
+      ],
+    };
+  }
 
   if (isConsulting) {
     return {
@@ -423,7 +464,16 @@ function inferSiteContent(prompt: string, name: string) {
 }
 
 function titleFromPrompt(prompt: string) {
-  const clean = prompt.replace(/[^\w\s-]/g, " ").trim();
+  const quoted = prompt.match(/["']([^"']{2,60})["']/)?.[1];
+  if (quoted) return quoted;
+
+  const businessName = prompt.match(/(?:for|client|business|website for)\s+([A-Z][\w&'\-]*(?:\s+[A-Z][\w&'\-]*){0,3})/)?.[1];
+  if (businessName && !/^(React|Tailwind|Hero|Use|Create|Premium|Modern)$/i.test(businessName)) return businessName;
+
+  const clean = prompt
+    .replace(/\b(create|build|generate|make|a|an|the|premium|modern|responsive|website|site|for|with|using|use)\b/gi, " ")
+    .replace(/[^\w\s&'-]/g, " ")
+    .trim();
   const words = clean.split(/\s+/).filter(Boolean).slice(0, 3);
   return words.length ? words.map(w => w[0]?.toUpperCase() + w.slice(1)).join(" ") : "Untitled";
 }

@@ -11,10 +11,10 @@ npm run dev
 
 This starts both servers:
 
-- Express backend: `http://localhost:3001`
-- Vite frontend: `http://localhost:8080`
+- Express backend: `http://localhost:4000`
+- Vite frontend: `http://localhost:5173`
 
-Open `http://localhost:8080`.
+Open `http://localhost:5173`.
 
 ## LLM Builder
 

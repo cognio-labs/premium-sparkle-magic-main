@@ -10,21 +10,22 @@ export default defineConfig(({ mode }) => {
   return {
     server: {
       host: "::",
-      port: 8080,
+      port: 5173,
+      strictPort: true,
       hmr: {
         overlay: false,
       },
       proxy: {
         "/api": {
-          target: "http://localhost:3001",
+          target: "http://localhost:4000",
           changeOrigin: true,
         },
         "/generated": {
-          target: "http://localhost:3001",
+          target: "http://localhost:4000",
           changeOrigin: true,
         },
         "/health": {
-          target: "http://localhost:3001",
+          target: "http://localhost:4000",
           changeOrigin: true,
         },
       },
