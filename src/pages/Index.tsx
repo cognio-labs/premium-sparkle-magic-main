@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   BarChart3, Bot, Briefcase, ChevronRight, FileText, Globe2, Grid2X2, Loader2, LogOut, Mic, PanelLeft, Plus,
   Search, Settings2, Sparkles, Trash2, User, Users, Wallet, X
@@ -140,9 +140,6 @@ const Dashboard = () => {
                 <p className="text-sm font-semibold">{displayName}</p>
                 <p className="text-xs text-muted-foreground">{user?.email}</p>
               </div>
-              <Button asChild variant="outline" size="sm" className="hidden h-8 rounded-md md:inline-flex">
-                <Link to="/builder">LLM Builder</Link>
-              </Button>
               <ProfileMenu name={displayName} email={user?.email ?? ""} onLogout={logout} />
             </div>
           </header>
