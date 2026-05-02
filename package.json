@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run server:dev\" \"npm run web:dev\"",
+    "dev": "npm run ports:clear && concurrently \"npm run server:dev\" \"npm run web:dev\"",
+    "dev:no-clear": "concurrently \"npm run server:dev\" \"npm run web:dev\"",
+    "ports:clear": "node scripts/clear-dev-ports.cjs 5173 4000",
     "web:dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
