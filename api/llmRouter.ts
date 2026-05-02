@@ -21,7 +21,8 @@ type WebsiteGenerationResult = {
 };
 
 const DEFAULT_OPENAI_MODEL = "gpt-4.1-mini";
-const DEFAULT_LOCAL_MODEL = "gemma4";
+const DEFAULT_LOCAL_MODEL = "qwen3";
+const DEFAULT_OLLAMA_MODELS = ["qwen3", "mistral", "llama3", "codellama"];
 
 export async function routeWebsiteGeneration(payload: GeminiPayload): Promise<WebsiteGenerationResult> {
   const attempts: RouterAttempt[] = [];
@@ -84,6 +85,7 @@ export function routerStatus() {
     models: {
       openai: process.env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL,
       localLlm: process.env.LOCAL_LLM_MODEL || DEFAULT_LOCAL_MODEL,
+      ollamaFallbacks: ollamaModels(),
     },
   };
 }
@@ -131,7 +133,7 @@ async function callLocalLLM(payload: GeminiPayload) {
   const useOllamaApi = process.env.LOCAL_LLM_PROVIDER === "ollama" || baseUrl?.includes(":11434");
 
   if (useOllamaApi) {
-    return callOllama(payload, baseUrl || "http://localhost:11434");
+    return callOllamaWithFallback(payload, baseUrl || "http://localhost:11434");
   }
 
   const response = await fetch(`${baseUrl}/v1/chat/completions`, {
@@ -159,12 +161,24 @@ async function callLocalLLM(payload: GeminiPayload) {
   return parseProviderJson(data?.choices?.[0]?.message?.content || "", "Local LLM");
 }
 
-async function callOllama(payload: GeminiPayload, baseUrl: string) {
+async function callOllamaWithFallback(payload: GeminiPayload, baseUrl: string) {
+  let lastError = "";
+  for (const model of ollamaModels()) {
+    try {
+      return await callOllama(payload, baseUrl, model);
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : "Ollama model failed";
+    }
+  }
+  throw new Error(lastError || "All Ollama models failed");
+}
+
+async function callOllama(payload: GeminiPayload, baseUrl: string, model: string) {
   const response = await fetch(`${baseUrl}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: process.env.LOCAL_LLM_MODEL || DEFAULT_LOCAL_MODEL,
+      model,
       stream: false,
       format: "json",
       messages: [
@@ -179,23 +193,41 @@ async function callOllama(payload: GeminiPayload, baseUrl: string) {
   }
 
   const data = await response.json();
-  return parseProviderJson(data?.message?.content || "", "Ollama");
+  return parseProviderJson(data?.message?.content || "", `Ollama ${model}`);
 }
 
 function parseProviderJson(text: string, label: string) {
   const clean = text.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
   if (!clean) throw new Error(`${label} returned empty content`);
   const parsed = JSON.parse(clean);
-  if (!parsed.files || typeof parsed.files !== "object") throw new Error(`${label} response did not include files`);
-  if (!parsed.files["index.html"]) throw new Error(`${label} response did not include index.html`);
+  const files = normalizeFiles(parsed.files);
+  if (!files || typeof files !== "object") throw new Error(`${label} response did not include files`);
+  if (!files["index.html"]) throw new Error(`${label} response did not include index.html`);
 
   return {
     name: parsed.name,
     reply: parsed.reply || "Website generated.",
     tags: Array.isArray(parsed.tags) ? parsed.tags : ["website", "ai"],
-    preview: parsed.files["index.html"],
-    files: parsed.files,
+    preview: files["index.html"],
+    files,
   };
+}
+
+function normalizeFiles(files: unknown) {
+  if (Array.isArray(files)) {
+    return files.reduce<Record<string, string>>((acc, file) => {
+      if (file && typeof file === "object" && "name" in file && "content" in file) {
+        acc[String((file as any).name)] = String((file as any).content ?? "");
+      }
+      return acc;
+    }, {});
+  }
+
+  if (files && typeof files === "object") {
+    return files as Record<string, string>;
+  }
+
+  return null;
 }
 
 function normalizeResult(result: any, provider: ProviderName, attempts: RouterAttempt[], usedFallback: boolean): WebsiteGenerationResult {
@@ -230,4 +262,10 @@ function compactError(message: string) {
     .replace(/sk-[0-9A-Za-z_*.-]+/g, "[openai-key]")
     .replace(/\s+/g, " ")
     .slice(0, 260);
+}
+
+function ollamaModels() {
+  const raw = process.env.OLLAMA_MODELS || process.env.LOCAL_LLM_MODEL || DEFAULT_LOCAL_MODEL;
+  const models = raw.split(",").map(item => item.trim()).filter(Boolean);
+  return Array.from(new Set([...models, ...DEFAULT_OLLAMA_MODELS]));
 }
