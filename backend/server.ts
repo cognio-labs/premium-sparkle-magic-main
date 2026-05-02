@@ -10,8 +10,7 @@ import {
   listGeneratedFiles,
   readGeneratedFile,
 } from "../api/llm";
-import { callGemini } from "../api/gemini";
-import { generateProjectFiles } from "../src/lib/store";
+import { routeWebsiteGeneration, routerStatus } from "../api/llmRouter";
 
 dotenv.config();
 
@@ -22,18 +21,15 @@ app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
 app.post("/api/gemini", async (req: Request, res: Response) => {
-  await handle(res, async () => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return localWebsiteFallback(req.body, "Gemini API key is not configured.");
-    }
+  await handle(res, async () => routeWebsiteGeneration(req.body ?? {}));
+});
 
-    try {
-      return await callGemini(apiKey, req.body ?? {});
-    } catch {
-      return localWebsiteFallback(req.body, "Gemini is unavailable right now.");
-    }
-  });
+app.post("/api/llm/route", async (req: Request, res: Response) => {
+  await handle(res, async () => routeWebsiteGeneration(req.body ?? {}));
+});
+
+app.get("/api/llm/status", (_req: Request, res: Response) => {
+  res.json({ success: true, router: routerStatus() });
 });
 
 app.post("/api/generate", async (req: Request, res: Response) => {
@@ -86,7 +82,10 @@ app.get("/health", (_req: Request, res: Response) => {
     status: "ok",
     backend: "express",
     geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
+    openaiConfigured: Boolean(process.env.OPENAI_API_KEY),
+    localLlmConfigured: Boolean(process.env.LOCAL_LLM_URL),
     anthropicConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
+    router: routerStatus(),
     timestamp: new Date().toISOString(),
   });
 });
@@ -120,19 +119,4 @@ function withStatus(status: number, message: string) {
   const error = new Error(message) as Error & { status?: number };
   error.status = status;
   return error;
-}
-
-function localWebsiteFallback(payload: any, reason: string) {
-  const appName = payload?.appName || "Website Draft";
-  const prompt = payload?.prompt || "Create a professional responsive website";
-  const fallback = generateProjectFiles(prompt, appName);
-
-  return {
-    ...fallback,
-    name: appName,
-    reply: "Website draft ready. I created a complete responsive layout with sections, animations, CTA, contact form, and editable project files.",
-    tags: ["website", "local-draft"],
-    usedFallback: true,
-    fallbackReason: reason,
-  };
 }
