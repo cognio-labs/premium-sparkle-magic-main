@@ -90,13 +90,26 @@ app.get("/health", (_req: Request, res: Response) => {
   });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log("");
   console.log("Lovable LLM Backend Server Running");
   console.log(`Server: http://localhost:${PORT}`);
   console.log(`API Base: http://localhost:${PORT}/api`);
   console.log(`Generated files: ${GENERATED_DIR}`);
   console.log("");
+});
+
+server.on("error", (error: NodeJS.ErrnoException) => {
+  if (error.code === "EADDRINUSE") {
+    console.error("");
+    console.error(`Port ${PORT} is already in use.`);
+    console.error("Stop the old backend process or set a different PORT in .env.");
+    console.error("Windows quick fix:");
+    console.error(`  Get-NetTCPConnection -LocalPort ${PORT} -State Listen | Select-Object -ExpandProperty OwningProcess | Stop-Process -Force`);
+    console.error("");
+    process.exit(1);
+  }
+  throw error;
 });
 
 async function handle(res: Response, fn: () => Promise<unknown>) {
