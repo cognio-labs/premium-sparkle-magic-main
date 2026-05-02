@@ -11,7 +11,7 @@ export const GEMINI_MODELS = [
   "gemini-3-pro-preview",
 ];
 
-type GeminiPayload = {
+export type GeminiPayload = {
   appName?: string;
   prompt?: string;
   files?: Record<string, string>;
@@ -40,7 +40,7 @@ export default async function handler(req: any, res: any) {
 }
 
 export async function callGemini(apiKey: string, payload: GeminiPayload) {
-  const prompt = buildPrompt(payload);
+  const prompt = buildWebsitePrompt(payload);
   const models = preferredModels(payload.model);
   let lastError = "";
 
@@ -98,7 +98,7 @@ function preferredModels(model?: string) {
   return [model, ...GEMINI_MODELS.filter(item => item !== model)];
 }
 
-function buildPrompt(payload: GeminiPayload) {
+export function buildWebsitePrompt(payload: GeminiPayload) {
   return `Create or update a premium website/app project.
 
 User request:
@@ -135,7 +135,7 @@ Return strict JSON with this exact shape:
 The index.html must render the actual preview immediately in an iframe without a build step. Use professional layout, real sections, buttons, responsive CSS, and no placeholder lorem ipsum.`;
 }
 
-const WEBSITE_BUILDER_SYSTEM_PROMPT = `You are an expert full-stack website builder AI agent.
+export const WEBSITE_BUILDER_SYSTEM_PROMPT = `You are an expert full-stack website builder AI agent.
 Transform client requirements into complete, production-ready websites.
 
 Core mission:
