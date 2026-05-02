@@ -1,0 +1,8 @@
+HTTP/1.1 500 Internal Server Error
+Content-Type: application/json
+Date: Sat, 02 May 2026 05:30:51 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Content-Length: 60
+
+{"error":"No number after minus sign in JSON at position 1"}
