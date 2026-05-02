@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
   getApp, getApps,
-  saveApps, toggleFavorite, upsertApp, useFavorites, type App
+  generateProjectFiles, saveApps, toggleFavorite, upsertApp, useFavorites, type App
 } from "@/lib/store";
 import { GEMINI_MODEL_OPTIONS, generateWebsiteWithGemini } from "@/lib/gemini";
 import { cn } from "@/lib/utils";
@@ -29,7 +29,26 @@ const AppDetailsInner = () => {
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
-    setApp(getApp(id));
+    const current = getApp(id);
+    if (current && isRawPromptPreview(current.preview || "")) {
+      const repaired: App = {
+        ...current,
+        ...generateProjectFiles(current.prompt || current.name, current.name),
+        messages: [
+          ...(current.messages ?? []),
+          {
+            role: "assistant",
+            content: "I repaired the local draft and converted the raw prompt output into a complete website layout.",
+            createdAt: Date.now(),
+          },
+        ],
+        updatedAt: Date.now(),
+      };
+      upsertApp(repaired);
+      setApp(repaired);
+      return;
+    }
+    setApp(current);
   }, [id]);
 
   const files = useMemo(() => app?.files ?? { "index.html": app?.preview ?? "" }, [app]);
@@ -283,3 +302,10 @@ const AppDetails = () => (
 );
 
 export default AppDetails;
+
+function isRawPromptPreview(preview: string) {
+  return preview.includes("DESIGN SYSTEM & STYLING") ||
+    preview.includes("SERVICES SECTION -") ||
+    preview.includes("CONTACT SECTION -") ||
+    preview.includes("Gemini unavailable, local generator used");
+}
