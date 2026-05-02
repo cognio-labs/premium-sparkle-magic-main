@@ -10,6 +10,7 @@ import {
   listGeneratedFiles,
   readGeneratedFile,
 } from "../api/llm";
+import { callGemini } from "../api/gemini";
 
 dotenv.config();
 
@@ -18,6 +19,16 @@ const PORT = Number(process.env.PORT || 3001);
 
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
+
+app.post("/api/gemini", async (req: Request, res: Response) => {
+  await handle(res, async () => {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw withStatus(500, "Missing GEMINI_API_KEY in .env");
+    }
+    return callGemini(apiKey, req.body ?? {});
+  });
+});
 
 app.post("/api/generate", async (req: Request, res: Response) => {
   await handle(res, async () => generateCode({ prompt: req.body.prompt, type: req.body.type || "component" }));
@@ -65,7 +76,13 @@ app.get("/generated/:fileName", (req: Request, res: Response) => {
 });
 
 app.get("/health", (_req: Request, res: Response) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+  res.json({
+    status: "ok",
+    backend: "express",
+    geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
+    anthropicConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
+    timestamp: new Date().toISOString(),
+  });
 });
 
 app.listen(PORT, () => {
@@ -91,4 +108,10 @@ function handleSync(res: Response, fn: () => unknown) {
   } catch (error: any) {
     res.status(error?.status || 500).json({ error: error?.message || "Unknown error" });
   }
+}
+
+function withStatus(status: number, message: string) {
+  const error = new Error(message) as Error & { status?: number };
+  error.status = status;
+  return error;
 }

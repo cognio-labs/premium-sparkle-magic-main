@@ -4,14 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"npm run server:dev\" \"npm run web:dev\"",
+    "web:dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
     "server": "tsx backend/server.ts",
     "server:dev": "tsx watch backend/server.ts",
-    "both": "concurrently \"npm run server:dev\" \"npm run dev\"",
+    "both": "npm run dev",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
